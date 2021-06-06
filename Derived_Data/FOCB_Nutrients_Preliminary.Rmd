@@ -1,0 +1,276 @@
+---
+title: "Initial Review of Friends of Casco Bay Nutrient Data"
+author: "Curtis C. Bohlen, Casco Bay Estuary Partnership."
+date: "04/26/2021"
+output:
+  github_document:
+    toc: true
+    fig_width: 5
+    fig_height: 4
+---
+
+<img
+    src="https://www.cascobayestuary.org/wp-content/uploads/2014/04/logo_sm.jpg"
+    style="position:absolute;top:10px;right:50px;" />
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.align = 'center',
+                      fig.width = 5, fig.height = 4,
+                      collapse = TRUE, comment = "#>")
+```
+
+#Load libraries
+```{r libraries}
+library(readr)
+library(readxl)
+library(tidyverse)
+
+library(mgcv)
+library(Ternary) # Base graphics ternary plots
+
+library(CBEPgraphics)
+load_cbep_fonts()
+theme_set(theme_cbep())
+```
+
+# DIN Data
+## Folder References
+```{r folder_refs}
+sibfldnm <- 'Original_Data'
+parent <- dirname(getwd())
+sibling <- file.path(parent,sibfldnm)
+
+#dir.create(file.path(getwd(), 'figures'), showWarnings = FALSE)
+```
+
+## Load Data
+```{r load_din}
+din_data <- read_excel(file.path(sibling, 
+                                 "FOCB DIN All Current Sites.xlsx")) %>%
+  
+  rename(station = Station,
+         dt = Date,
+         time = Time,
+         sample_depth = `Sample Depth(m)`,
+         nox = `NO3+NO2`,
+         silicate = `Si(OH)4`,
+         nh4 = NH4,
+         po4 = PO4,
+         din = `DIN(uM)`,
+         month = Month,
+         year = Year) %>%
+  mutate(month = factor(month, levels = 1:12, labels = month.abb))
+```
+
+## Time Stamps are Inconsistent
+Some contain strings with times, some are fractions. This probably reflects
+differences in whether Excel interpreted data entered as a time or not.
+
+```{r show_bad_times}
+head(din_data$time, 25)
+```
+
+By looking at the Excel spreadsheet, we can see that:
+
+"0.64930555555555558" equates to 15:35
+"0.31944444444444448" equates to 7:40.
+
+Excel time stamps are fractions of the 24 hour day. Dates are whole numbers.  
+Date time data can include both a whole number of days and a fraction for time
+of day.
+
+We can create a function to calculate hours and minutes from a fraction, 
+and return a time string.  We need to address two scenarios: a datetime, which 
+we convert to a time by dropping the whole number, and a time, which we convert
+directly.
+
+(The `hm()` function from lubridate` converts strings to intervals, implicitly 
+since midnight, of formal class `Period`.  The `Period` S4 class, is  both more 
+capable and more complex than we need.)
+```{r time_functions}
+excel_time <- function(frac) {
+  #If it's a datetime from excel, strip off the integer to get a time
+  frac <- if_else(frac > 0.9999, frac - trunc(frac), frac)
+  # Calculate hour and minute from the decimal fraction
+  tm  <- 24 * frac
+  hr  <- trunc(tm)
+  min <- round((tm - hr) * 60,0)
+  # we use formatC to pad the numbers with leading zeros.
+  strng <- paste0(formatC(hr, width = 2, format = 'd', flag = '0'), 
+                  ':', 
+                  formatC(min, width = 2, format = 'd', flag = '0'))
+  strng <- if_else(is.na(frac), NA_character_, strng)
+  return(strng)
+}
+
+excel_time(0.64930555555555558)
+excel_time(0.31944444444444448)
+excel_time(c(0.64930555555555558, 0.31944444444444448, 17.5, NA))
+```
+
+So, here's a general function for converting the messy excel data to a
+consistent time string.  This addresses the fact that some entries are strings,
+not Excel datetimes or times.
+```{r clean_time_fxn}
+clean_excel_time <- function(val) {
+  r <- if_else(grepl(':', val),
+               val, excel_time(as.numeric(val)))
+  return(r)
+}
+```
+
+```{r clean_times}
+din_data <- din_data %>%
+  mutate(time = clean_excel_time(time),
+         hour = as.numeric(substr(time,1,2))) %>%
+  relocate(year, month, time, hour, .after =  dt)
+```
+
+## Address Sample Depths
+Samples in the data include both surface samples and samples collected at
+various depths.  This complicates analysis, in part because sampling history is 
+not consistent across years and sites.  Here we explore how and whether to
+include depth samples in our analyses. 
+
+### Crosstabs
+```{r depth_year_xtab}
+tmp <- din_data %>%
+  mutate(smdpth = round(sample_depth,0))
+xtabs(~smdpth + year, data = tmp)
+```
+
+1.  For the most part, data has only been collected since 2001.  
+2.  Most DIN samples are surface samples.   
+3.  There is no complete break in samples by depth, so there is fully
+    satisfactory basis for separating the data into "Surface" and "Depth" 
+    samples, although MOST samples at depth are more than a few meters below 
+    the surface.  There is a partial gap between D ~ 5 and D ~ 10.  
+
+```{r depth_site_xtab}
+tmp <- din_data %>%
+  mutate(smdpth = round(sample_depth,0))
+xtabs(~smdpth + station, data = tmp)
+```
+
+So, depth samples were only collected at a few stations with any regularity.
+Clearly in this setting, it makes little sense to model across all stations.
+We have no reason to think the relationship between depth and DIN is similar
+across different sites, and we have too few sites to treat them as meaningful
+random samples of possible sites.
+
+The stations with regular depth samples include:
+
+*  P5BSD  
+*  P6FGG   
+*  P7CBI   
+*  PKT42  
+
+### Create Data Only From Sites With Deep Data
+```{r create_deep_data}
+deep_data <- din_data %>%
+  filter(station %in% c('P5BSD', 'P6FGG', 'P7CBI', 'PKT42')) %>%
+  mutate(station = factor(station))
+```
+
+### Linear Model
+```{r d_lm}
+d_lm <- lm(log1p(din) ~ station + 
+                             sample_depth + I(sample_depth^2) +
+                             station:sample_depth + station:I(sample_depth^2) + 
+                  factor(year) + month, 
+                data = deep_data)
+anova(d_lm)
+```
+
+```{r step_d_lm}
+d_lm_2 <- step(d_lm)
+anova(d_lm_2)
+```
+So `step()` does not alter model selection here, despite non-significant terms.
+Sample depth appears to matter, but....
+
+## Surface Versus Depth Models
+An alternative way to analyze these data is as "surface" versus 
+"bottom" data, where "bottom" is defined for each site.  Note that the maximum
+observed depth is quite different for each site.
+
+```{r max_depths}
+deep_data %>%
+  group_by(station) %>%
+  summarize(d = max(sample_depth))
+```
+And the distribution of depths for each site is non-continuous.  We believe
+FOCB actually sampled DIN at surface and at "bottom" over the years.
+```{r hist_depths}
+ggplot(deep_data, aes(sample_depth, fill = station)) + 
+  geom_histogram()
+```
+
+For P5BSD, "Bottom" is over about 22 meters,  
+For P6FGG, over about             11 meters,  
+For P7CBI, over about              8 meters, and  
+For PKT42, over about              2 meters
+
+### Create Surface and Bottom Classes
+```{r create_depth_classes}
+deep_data_2 <- deep_data %>%
+  mutate(sb = NA_character_,
+         sb = if_else((station == 'P5BSD' & sample_depth > 22) |
+                      (station == 'P6FGG' & sample_depth > 11) |
+                      (station == 'P7CBI' & sample_depth > 7)  |
+                      (station == 'PKT42' & sample_depth > 1.5),
+                      'Bottom', sb),
+         sb = if_else(sample_depth < 1.0, 'Surface', sb))
+```
+
+```{r plot_sample_depths_by_class}
+ggplot(deep_data_2, aes(station, sample_depth, color = sb)) + 
+  geom_jitter(width = .4, height = 0)
+```
+
+```{r surface_vs_bottom_lm}
+sb_lm <- lm(log1p(din) ~ (station + sb + sample_depth)^2 +
+                             month + factor(year),
+                 data = deep_data_2, subset = ! is.na(sb))
+```
+
+```{r sb_lm_anova}
+anova(sb_lm)
+```
+So, even after segregating surface vs. bottom samples, sample depth continues to 
+be important, and the difference between surfaceand bottom varies by site. 
+In short, there is no convenient way to summarize the differences between 
+surface and depth in DIN.
+
+We conclude we should restrict analysis to one or the other.
+  
+# TN Data
+```{r load_tn}
+tn_data <- read_excel(file.path(sibling, 
+                                 "FOCB TN All Current Sites.xlsx")) %>%
+  rename(station = SiteID,
+         dt = Date,
+         sample_depth = `Depth (m)`,
+         tn = `TN(mg/l)`,
+         month = Month,
+         year = Year) %>%
+  mutate(month = factor(month, levels = 1:12, labels = month.abb))
+```
+
+## Check Sample Depths
+```{r check_depths}
+tmp <- tn_data %>%
+  mutate(smdpth = round(sample_depth,1))
+xtabs(~smdpth + year, data = tmp)
+```
+
+So TN samples are all surface samples, with a change in how depths
+were recorded in 2019.
+
+```{r sampling_history}
+xtabs(~station + year, data = tmp)
+```
+
+TN samples are well distributed by station in recent years, but older data is
+uneven.  Trend analysis will require selection station with a sufficient record 
+to be useful.

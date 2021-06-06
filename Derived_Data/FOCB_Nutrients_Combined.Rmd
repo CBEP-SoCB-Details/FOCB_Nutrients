@@ -1,0 +1,358 @@
+---
+title: "Preliminary Comparison of TN and DIN Data from Friends of Casco Bay"
+author: "Curtis C. Bohlen, Casco Bay Estuary Partnership."
+date: "04/26/2021"
+output:
+  github_document:
+    toc: true
+    fig_width: 5
+    fig_height: 4
+---
+
+<img
+    src="https://www.cascobayestuary.org/wp-content/uploads/2014/04/logo_sm.jpg"
+    style="position:absolute;top:10px;right:50px;" />
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.align = 'center',
+                      fig.width = 5, fig.height = 4,
+                      collapse = TRUE, comment = "#>")
+```
+
+# Introduction
+This notebook Looks at DIN and TN numbers from Friends of Casco Bay samples
+where both are available.  We uncover a certain degree of data inconsistency,
+but persevere.
+
+FOCB reports the TN samples and DIN samples were sent to different laboratories,
+and so direct comparison relies on consistent calibration, etc. across two labs.
+Accordingly, these analyses should be considered provisional.
+
+FOCB also reports that some DIN samples over the years had unusually high 
+ammonium values, as uncovered in this analysis, and that those samples were 
+noted by the laboratory conducting the analyses, but not flagged as in error.
+
+#Load libraries
+```{r libraries}
+library(readr)
+library(readxl)
+library(tidyverse)
+
+#library(mgcv)
+library(Ternary) # Base graphics ternary plots
+
+library(CBEPgraphics)
+load_cbep_fonts()
+theme_set(theme_cbep())
+```
+
+# DIN Data
+## Folder References
+```{r folder_refs}
+sibfldnm <- 'Original_Data'
+parent <- dirname(getwd())
+sibling <- file.path(parent,sibfldnm)
+
+dir.create(file.path(getwd(), 'figures'), showWarnings = FALSE)
+```
+
+## Load Data
+```{r load_din_data}
+din_data <- read_excel(file.path(sibling, 
+                                 "FOCB DIN All Current Sites.xlsx")) %>%
+  
+  rename(station = Station,
+         dt = Date,
+         time = Time,
+         sample_depth = `Sample Depth(m)`,
+         nox = `NO3+NO2`,
+         silicate = `Si(OH)4`,
+         nh4 = NH4,
+         po4 = PO4,
+         din = `DIN(uM)`,
+         month = Month,
+         year = Year) %>%
+  mutate(month = factor(month, levels = 1:12, labels = month.abb))
+```
+
+## Time Stamps are Inconsistent
+Some contain strings with times, some are fractions. This probably reflects
+differences in whether Excel interpreted data entered as a time or not.
+```{r demo_problem}
+head(din_data$time, 25)
+```
+
+Excel time stamps are fractions of the 24 hour day. Dates are whole numbers.  
+Date time data can include both a whole number of days and a fraction for time
+of day.
+
+We can create a function to calculate hours and minutes from a fraction, 
+and return a time string.  We need to address two scenarios: a datetime, which 
+we convert to a time by dropping the whole number, and a time, which we convert
+directly. We then produce a function for converting the messy excel data to a
+consistent time string.  This addresses the fact that some entries are strings,
+not Excel date or time values.
+```{r timestamp_fxns}
+excel_time <- function(frac) {
+  #If it's a datetime from excel, strip off the integer to get a time
+  frac <- if_else(frac > 0.9999, frac - trunc(frac), frac)
+  # Calculate hour and minute from the decimal fraction
+  tm  <- 24 * frac
+  hr  <- trunc(tm)
+  min <- round((tm - hr) * 60,0)
+  # we use formatC to pad the numbers with leading zeros.
+  strng <- paste0(formatC(hr, width = 2, format = 'd', flag = '0'), 
+                  ':', 
+                  formatC(min, width = 2, format = 'd', flag = '0'))
+  strng <- if_else(is.na(frac), NA_character_, strng)
+  return(strng)
+}
+
+clean_excel_time <- function(val) {
+  r <- if_else(grepl(':', val),
+               val, excel_time(as.numeric(val)))
+  return(r)
+}
+```
+
+```{r correct_timestamp}
+din_data <- din_data %>%
+  mutate(time = clean_excel_time(time),
+         hour = as.numeric(substr(time,1,2))) %>%
+  relocate(year, month, time, hour, .after =  dt)
+```
+
+## Restrict to Surface Data
+Samples in the data include both surface samples and samples collected at
+various depths. Preliminary analysis showed significant differences between 
+surface and depth DIN values, but those differences varied by site and season, 
+greatly complicating any analysis.
+
+TN data is only available from surface samples, (depths < 1 meter) so here we 
+impose the same restriction on the DIN data.  
+
+```{r restrict_to_surface}
+din_data <- din_data %>%
+  filter(sample_depth <= 1) %>%
+  select(-year, -month, -time, -hour, -silicate, -po4)
+```
+
+# TN Data
+```{r load_tn_data}
+tn_data <- read_excel(file.path(sibling, 
+                                 "FOCB TN All Current Sites.xlsx")) %>%
+  rename(station = SiteID,
+         dt = Date,
+         sample_depth = `Depth (m)`,
+         tn = `TN(mg/l)`,
+         month = Month,
+         year = Year) %>%
+  mutate(month = factor(month, levels = 1:12, labels = month.abb))
+```
+
+TN samples are all surface samples, with a change in how depths
+were recorded in 2019.
+
+# Combined Data
+```{r combine_data}
+all_data <- tn_data %>%
+  full_join(din_data, by = c("station", "dt")) %>%
+  filter(! is.na(din), ! is.na(tn))
+```
+
+Note that sample depths don't always match, but they are seldom very far apart.
+
+
+# Data Review
+To compare DIN to TN, we need to convert units.  The TN values are reported in 
+mg/l as N.  The DIN values are in micromolar, so we need to multiply them by
+the molecular weight of nitrogen to convert to micrograms per liter, then 
+divide by 1000 to convert to milligrams per liter:
+```{r convert_units}
+MW_NH4 <- 14.007 + (1.008 * 4)
+MW_NO3 <- 14.007 + (15.999 * 3)
+MW_N <- 14.007
+p90_95 <- quantile(all_data$nh4, c(0.9, 0.95))
+
+all_data <- all_data %>%
+  mutate(din_N = din * MW_N / 1000,
+         nox_N = nox * MW_N / 1000,
+         nh4_N = nh4 * MW_N / 1000,
+         organic_N = tn - din_N,     # Some values will be negative!
+         err = din_N > tn,
+         nh4_ext = cut(nh4, c(0, p90_95, 100), labels = c('Low', 'P90', 'P95')))
+```
+
+```{r count_problems}
+sum(all_data$err, na.rm = TRUE)
+sum(! all_data$err, na.rm = TRUE)
+```
+
+## TN by DIN Graphic
+We check to see if DIN < TN.  It's not....
+
+### Dot Color by Ammonium Percentiles
+```{r tn_din_plot_ammonium, fig.height = 6, fig.width = 7}
+ggplot(all_data, aes(tn, din_N)) + 
+  geom_point(aes(fill = nh4_ext), size = 2, shape = 21, alpha = 0.5) +
+  geom_abline(intercept = 0, slope = 1) +
+  scale_fill_manual(values = cbep_colors()) +
+  coord_equal() +
+  theme_cbep(base_size = 12) +
+    ylab('DIN (mg/ l as N)') +
+    xlab('TN (mg/l)') +
+  xlim(0,1.75) +
+  ylim(0,1.75)
+```
+
+As suggested by FOCB, a small number of samples were noted by the laboratory 
+as having unusually high ammonium values.  But those samples were not flagged
+in any way as in error.  FOCB suggested the possibility of arbitrarily dropping 
+the top 5% or so of samples, which corresponds to almost all the 
+problematic ammonium / DIN samples.  All the problematic DIN values are in the 
+top 10% of ammonium levels.
+
+We have a number of strategies available for handling that.
+
+*  We can drop those values from analyses entirely  
+*  We can use resistant and robust statistics (like trimmed means) that downplay
+   the impact of extreme values.
+*  We can combine the two strategies.
+
+While robust and resistant methods are attractive in this setting, it is worth
+pointing out that if high NH4 values are just plain wrong, as suspected, their 
+presence will still affect the probability distribution for the expected value
+of trimmed means.  Their importance will shrink with higher levels of trimming, 
+but the effect won't vanish.
+
+### List of Samples with DIN > TN
+```{r list_problems}
+all_data[which(all_data$err),] %>%
+  select(station, dt) %>%
+  arrange(station, dt)
+```
+
+# Plotting Ammonium versus Nitrates
+## Untrimmed Data 
+```{r nh4_nox_plot_untrimmed, }
+ggplot(all_data, aes(nh4_N, nox_N)) + 
+  geom_point(fill = cbep_colors()[1], shape = 21, alpha = 0.2) +
+  geom_abline(intercept = 0, slope = 1) +
+  theme_cbep(base_size = 12) +
+  xlab('NH_4 N (mg/l as N)') +
+  ylab('NO_x N (mg/l as N)') +
+  xlim(0, 0.35) +
+  ylim(0, 0.35) +
+  coord_equal()
+```
+
+### Create Transform Function 
+It appears `ggplot2` (via `scales`) does not provide a generalized log
+transform.  Since we have some nominal "zero" values in these data (non-detects?
+What was the detection limit?), we can not use a log transform. Because our
+values are well below 1.0, we have to add much less than 1.0 to our transform,
+so we can't use `log1p()`.
+
+Unfortunately, this is not creating axis labels in untransformed units. For 
+exploratory purposes, this is sufficient.
+
+### Plot on Transformed Axes
+```{r transform_fxn}
+maketran = function(.val) {
+  scales::trans_new(
+    name = 'Generalized Log',
+    transform = function(x) log(x + .val),
+    inverse = function(x) exp(x) - .val,
+    breaks = scales::extended_breaks(),
+    minor_breaks = scales::regular_minor_breaks(),
+    format = scales::label_number(scale = 0.01),
+    domain = c(0, Inf)
+  )
+}
+```
+
+```{r nh4_nox_plot_untrimmed_trans}
+scale = 0.01
+mytran = maketran(scale)
+
+ggplot(all_data, aes(nh4_N, nox_N)) + 
+  geom_point(fill = cbep_colors()[1], shape = 21, alpha = 0.2) +
+  geom_abline(intercept = 0, slope = 1) +
+  theme_cbep(base_size = 12) +
+  scale_x_continuous(trans = mytran) +
+  scale_y_continuous(trans = mytran) +
+  xlab('NH_4 N (mg/l as N)') +
+  ylab('NO_x N (mg/l as N)') +
+  coord_equal()
+```
+
+What that shows is that unlike in the tributaries, ammonium and nitrogen levels 
+are comparable, with ammonium only slightly lower, on average, than nitrate, but
+with a huge amount of scatter.
+
+## Three Alternate Data Pruning Strategies 
+### Restrict to data with DIN < TN
+```{r data_trimmed_1}
+din_lt_tn_data <- all_data %>%
+  filter(! err) %>%
+  filter(year > 2000)     # Eliminate a handful of early samples
+```
+
+This trimming strategy drops a FEW high nitrate values too.  We are
+implicitly dropping our most extreme nitrogen samples, where those high ammonium 
+values may reflect real high N values for both ammonium and nitrates. (And thus 
+the TN value may be misleading.)
+
+### Drop Samples with Ammonium in the Top 5%
+```{r data_trimmed_2}
+p95 <- quantile(all_data$nh4, 0.95)
+NH4_p95_data <- all_data %>%
+  filter(nh4 < p95) %>%
+  filter(year > 2000) # Eliminate a handful of very early samples
+```
+
+This is a slightly more aggressive trimming of the very highest ammonium values,
+but leaves in place a few slightly lower but still high ammonium values.
+
+### Drop BOTH
+```{r nh4_nox_plot_trim_both}
+p95 <- quantile(all_data$nh4, 0.95)
+strict_data <- all_data %>%
+  filter(nh4 < p95) %>%
+  filter(! err) %>%
+  filter(year > 2000)  # Eliminate a handful of very early samples
+
+ggplot(strict_data, aes(nh4_N, nox_N)) + 
+  geom_point(fill = cbep_colors()[1], shape = 21, alpha = 0.2) +
+  geom_abline(intercept = 0, slope = 1) +
+  theme_cbep(base_size = 12) +
+  scale_x_continuous(trans = mytran) +
+  scale_y_continuous(trans = mytran) +
+  xlab('NH_4 N (mg/l as N)') +
+  ylab('NO_x N (mg/l as N)') +
+  coord_equal()
+```
+
+### Strict Data DIN by TN
+```{r tn_din_plot_ammonium_strict, fig.height = 6, fig.width = 7}
+ggplot(strict_data, aes(tn, din_N)) + 
+  geom_point(aes(fill = nh4_ext), size = 2, shape = 21, alpha = 0.5) +
+  geom_abline(intercept = 0, slope = 1) +
+  scale_fill_manual(values = cbep_colors()) +
+  coord_equal() +
+  theme_cbep(base_size = 12) +
+    ylab('DIN (mg/ l as N)') +
+    xlab('TN (mg/l)') +
+  xlim(0,1.75) +
+  ylim(0,1.75)
+```
+
+# Output "Strict Data"
+```{r write_csv}
+strict_data <- strict_data %>%
+  rename(tn_depth = sample_depth.x,
+         din_depth = sample_depth.y) %>%
+  select(-err, - nh4_ext)
+
+write_csv(strict_data, 'focb_n_data_strict.csv')
+```
