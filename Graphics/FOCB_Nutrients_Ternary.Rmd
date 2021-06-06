@@ -58,7 +58,7 @@ load_cbep_fonts()
 theme_set(theme_cbep())
 ```
 
-# DIN Data
+# Load Data
 ## Folder References
 ```{r folder_refs}
 sibfldnm <- 'Derived_Data'

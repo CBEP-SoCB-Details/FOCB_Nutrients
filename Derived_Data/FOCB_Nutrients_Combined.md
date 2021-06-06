@@ -202,7 +202,7 @@ tn_data <- read_excel(file.path(sibling,
          tn = `TN(mg/l)`,
          month = Month,
          year = Year) %>%
-  mutate(month = factor(month, levels = 1:12, labels = month.abb))
+  select(-month, -year)
 ```
 
 TN samples are all surface samples, with a change in how depths were
@@ -213,7 +213,16 @@ recorded in 2019.
 ``` r
 all_data <- tn_data %>%
   full_join(din_data, by = c("station", "dt")) %>%
-  filter(! is.na(din), ! is.na(tn))
+  filter(! (is.na(nox) &  is.na(nh4) &is.na(tn))) %>%
+  mutate(year = as.numeric(format(dt, format = '%Y')),
+                           yearf = factor(year),
+                           month = as.numeric(format(dt, format = '%m')),
+                           month = factor(month, levels = month.abb),
+                           doy   = as.numeric(format(dt, format = '%j'))) %>%
+  rename(tn_depth  = sample_depth.x,
+         din_depth = sample_depth.y) %>%
+  relocate(din_depth, .after = tn_depth) %>%
+  relocate(year, yearf, month, doy, .after = dt)
 ```
 
 Note that sample depths don’t always match, but they are seldom very far
@@ -231,22 +240,27 @@ liter:
 MW_NH4 <- 14.007 + (1.008 * 4)
 MW_NO3 <- 14.007 + (15.999 * 3)
 MW_N <- 14.007
-p90_95 <- quantile(all_data$nh4, c(0.9, 0.95))
+p90_95 <- quantile(all_data$nh4, c(0.9, 0.95), na.rm = TRUE)
 
 all_data <- all_data %>%
   mutate(din_N = din * MW_N / 1000,
          nox_N = nox * MW_N / 1000,
          nh4_N = nh4 * MW_N / 1000,
          organic_N = tn - din_N,     # Some values will be negative!
-         err = din_N > tn,
+         err = ! is.na(din) & ! is.na(tn) & din_N > tn,
          nh4_ext = cut(nh4, c(0, p90_95, 100), labels = c('Low', 'P90', 'P95')))
 ```
+
+Note the total rows of data includes many rows with missing values in
+one value or another. The following code only adds up rows for which it
+was possible to compute DIN and TN values (i.e., records where both
+values were defined).
 
 ``` r
 sum(all_data$err, na.rm = TRUE)
 #> [1] 37
 sum(! all_data$err, na.rm = TRUE)
-#> [1] 679
+#> [1] 3294
 ```
 
 ## TN by DIN Graphic
@@ -266,7 +280,7 @@ ggplot(all_data, aes(tn, din_N)) +
     xlab('TN (mg/l)') +
   xlim(0,1.75) +
   ylim(0,1.75)
-#> Warning: Removed 1 rows containing missing values (geom_point).
+#> Warning: Removed 2616 rows containing missing values (geom_point).
 ```
 
 <img src="FOCB_Nutrients_Combined_files/figure-gfm/tn_din_plot_ammonium-1.png" style="display: block; margin: auto;" />
@@ -317,6 +331,9 @@ all_data[which(all_data$err),] %>%
 
 ## Untrimmed Data
 
+This is ALL available data where `nh4_N` and `nox_N` are both defined.
+This is a much larger set that rows with TN data too.
+
 ``` r
 ggplot(all_data, aes(nh4_N, nox_N)) + 
   geom_point(fill = cbep_colors()[1], shape = 21, alpha = 0.2) +
@@ -327,7 +344,7 @@ ggplot(all_data, aes(nh4_N, nox_N)) +
   xlim(0, 0.35) +
   ylim(0, 0.35) +
   coord_equal()
-#> Warning: Removed 18 rows containing missing values (geom_point).
+#> Warning: Removed 354 rows containing missing values (geom_point).
 ```
 
 <img src="FOCB_Nutrients_Combined_files/figure-gfm/nh4_nox_plot_untrimmed-1.png" style="display: block; margin: auto;" />
@@ -372,6 +389,7 @@ ggplot(all_data, aes(nh4_N, nox_N)) +
   xlab('NH_4 N (mg/l as N)') +
   ylab('NO_x N (mg/l as N)') +
   coord_equal()
+#> Warning: Removed 259 rows containing missing values (geom_point).
 ```
 
 <img src="FOCB_Nutrients_Combined_files/figure-gfm/nh4_nox_plot_untrimmed_trans-1.png" style="display: block; margin: auto;" />
@@ -386,7 +404,7 @@ than nitrate, but with a huge amount of scatter.
 
 ``` r
 din_lt_tn_data <- all_data %>%
-  filter(! err) %>%
+  #filter(! err | is.na(err)) %>%
   filter(year > 2000)     # Eliminate a handful of early samples
 ```
 
@@ -398,7 +416,7 @@ nitrates. (And thus the TN value may be misleading.)
 ### Drop Samples with Ammonium in the Top 5%
 
 ``` r
-p95 <- quantile(all_data$nh4, 0.95)
+p95 <- quantile(all_data$nh4, 0.95, na.rm = TRUE)
 NH4_p95_data <- all_data %>%
   filter(nh4 < p95) %>%
   filter(year > 2000) # Eliminate a handful of very early samples
@@ -408,15 +426,39 @@ This is a slightly more aggressive trimming of the very highest ammonium
 values, but leaves in place a few slightly lower but still high ammonium
 values.
 
+``` r
+all_data %>%
+  filter(year > 2000) %>% 
+  select(nh4) %>% 
+  filter(! is.na(nh4)) %>% 
+  pull %>% 
+  length
+#> [1] 3066
+```
+
 ### Drop BOTH
 
-``` r
-p95 <- quantile(all_data$nh4, 0.95)
-strict_data <- all_data %>%
-  filter(nh4 < p95) %>%
-  filter(! err) %>%
-  filter(year > 2000)  # Eliminate a handful of very early samples
+Here we replace suspect values with NA, to retain as much data as
+possible. But we stil lhave WAY fewer
 
+``` r
+p95 <- quantile(all_data$nh4, 0.95, na.rm = TRUE)
+strict_data <- all_data %>%
+  filter(year > 2000) %>%  # Eliminate a handful of very early samples
+  mutate(lower_95 = nh4 < p95) %>%
+  mutate(nh4 = if_else(lower_95, nh4, NA_real_),
+         nh4_N = if_else(lower_95, nh4_N, NA_real_),
+         din = if_else(lower_95, din, NA_real_),
+         din_N = if_else(lower_95, din_N, NA_real_),
+         organic_N = if_else(lower_95, organic_N, NA_real_)) %>%
+  mutate(nh4 = if_else(! err, nh4, NA_real_),
+         nh4_N = if_else(! err, nh4_N, NA_real_),
+         din = if_else(! err, din, NA_real_),
+         din_N = if_else(! err, din_N, NA_real_),
+         organic_N = if_else(! err, organic_N, NA_real_))
+```
+
+``` r
 ggplot(strict_data, aes(nh4_N, nox_N)) + 
   geom_point(fill = cbep_colors()[1], shape = 21, alpha = 0.2) +
   geom_abline(intercept = 0, slope = 1) +
@@ -426,15 +468,16 @@ ggplot(strict_data, aes(nh4_N, nox_N)) +
   xlab('NH_4 N (mg/l as N)') +
   ylab('NO_x N (mg/l as N)') +
   coord_equal()
+#> Warning: Removed 419 rows containing missing values (geom_point).
 ```
 
-<img src="FOCB_Nutrients_Combined_files/figure-gfm/nh4_nox_plot_trim_both-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_Nutrients_Combined_files/figure-gfm/unnamed-chunk-2-1.png" style="display: block; margin: auto;" />
 
 ### Strict Data DIN by TN
 
 ``` r
 ggplot(strict_data, aes(tn, din_N)) + 
-  geom_point(aes(fill = nh4_ext), size = 2, shape = 21, alpha = 0.5) +
+  geom_point(aes(fill = err), size = 2, shape = 21, alpha = 0.5) +
   geom_abline(intercept = 0, slope = 1) +
   scale_fill_manual(values = cbep_colors()) +
   coord_equal() +
@@ -443,7 +486,7 @@ ggplot(strict_data, aes(tn, din_N)) +
     xlab('TN (mg/l)') +
   xlim(0,1.75) +
   ylim(0,1.75)
-#> Warning: Removed 1 rows containing missing values (geom_point).
+#> Warning: Removed 2658 rows containing missing values (geom_point).
 ```
 
 <img src="FOCB_Nutrients_Combined_files/figure-gfm/tn_din_plot_ammonium_strict-1.png" style="display: block; margin: auto;" />
@@ -452,9 +495,7 @@ ggplot(strict_data, aes(tn, din_N)) +
 
 ``` r
 strict_data <- strict_data %>%
-  rename(tn_depth = sample_depth.x,
-         din_depth = sample_depth.y) %>%
-  select(-err, - nh4_ext)
+  select(-err, - nh4_ext, -lower_95)
 
 write_csv(strict_data, 'focb_n_data_strict.csv')
 ```

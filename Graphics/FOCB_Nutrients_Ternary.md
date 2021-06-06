@@ -4,9 +4,9 @@ Curtis C. Bohlen, Casco Bay Estuary Partnership.
 04/26/2021
 
 -   [Introduction](#introduction)
--   [DIN Data](#din-data)
+-   [Load Data](#load-data)
     -   [Folder References](#folder-references)
-    -   [Load Data](#load-data)
+    -   [Load Data](#load-data-1)
 -   [Ternary Plots](#ternary-plots)
     -   [Draft Plots](#draft-plots)
         -   [By Five Year “Eras”](#by-five-year-eras)
@@ -76,7 +76,7 @@ load_cbep_fonts()
 theme_set(theme_cbep())
 ```
 
-# DIN Data
+# Load Data
 
 ## Folder References
 
@@ -104,11 +104,13 @@ strict_data <- read_csv(file.path(sibling,
 #> cols(
 #>   station = col_character(),
 #>   dt = col_datetime(format = ""),
-#>   tn_depth = col_double(),
-#>   tn = col_double(),
-#>   month = col_character(),
 #>   year = col_double(),
+#>   yearf = col_double(),
+#>   month = col_logical(),
+#>   doy = col_double(),
+#>   tn_depth = col_double(),
 #>   din_depth = col_double(),
+#>   tn = col_double(),
 #>   nox = col_double(),
 #>   nh4 = col_double(),
 #>   din = col_double(),
