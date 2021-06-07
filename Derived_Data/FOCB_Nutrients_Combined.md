@@ -108,8 +108,7 @@ din_data <- read_excel(file.path(sibling,
          po4 = PO4,
          din = `DIN(uM)`,
          month = Month,
-         year = Year) %>%
-  mutate(month = factor(month, levels = 1:12, labels = month.abb))
+         year = Year)
 ```
 
 ## Time Stamps are Inconsistent
@@ -455,12 +454,16 @@ strict_data <- all_data %>%
          nh4_N = if_else(! err, nh4_N, NA_real_),
          din = if_else(! err, din, NA_real_),
          din_N = if_else(! err, din_N, NA_real_),
-         organic_N = if_else(! err, organic_N, NA_real_))
+         organic_N = if_else(! err, organic_N, NA_real_)) %>%
+  select(-err, - nh4_ext, -lower_95) %>%
+  mutate(month = as.numeric(format(dt, format = '%m')),
+         month = factor(month, levels = 1:12, labels = month.abb)) %>%
+  filter(! (is.na(tn) & is.na(nox) & is.na(nh4) & is.na(tn) ))
 ```
 
 ``` r
 ggplot(strict_data, aes(nh4_N, nox_N)) + 
-  geom_point(fill = cbep_colors()[1], shape = 21, alpha = 0.2) +
+  geom_point(aes(fill = month), shape = 21, alpha = 0.5) +
   geom_abline(intercept = 0, slope = 1) +
   theme_cbep(base_size = 12) +
   scale_x_continuous(trans = mytran) +
@@ -477,25 +480,27 @@ ggplot(strict_data, aes(nh4_N, nox_N)) +
 
 ``` r
 ggplot(strict_data, aes(tn, din_N)) + 
-  geom_point(aes(fill = err), size = 2, shape = 21, alpha = 0.5) +
+  geom_point(aes(fill = month), size = 2, shape = 21, alpha = 0.5) +
   geom_abline(intercept = 0, slope = 1) +
-  scale_fill_manual(values = cbep_colors()) +
+  #scale_fill_manual(values = cbep_colors()) +
   coord_equal() +
   theme_cbep(base_size = 12) +
     ylab('DIN (mg/ l as N)') +
-    xlab('TN (mg/l)') +
-  xlim(0,1.75) +
-  ylim(0,1.75)
-#> Warning: Removed 2658 rows containing missing values (geom_point).
+    xlab('TN (mg/l)')  +
+  xlim(0,1) #+
+#> Warning: Removed 2661 rows containing missing values (geom_point).
 ```
 
 <img src="FOCB_Nutrients_Combined_files/figure-gfm/tn_din_plot_ammonium_strict-1.png" style="display: block; margin: auto;" />
 
+``` r
+  #ylim(0,1.75)
+```
+
 # Output “Strict Data”
 
 ``` r
-strict_data <- strict_data %>%
-  select(-err, - nh4_ext, -lower_95)
+strict_data <- strict_data
 
 write_csv(strict_data, 'focb_n_data_strict.csv')
 ```
