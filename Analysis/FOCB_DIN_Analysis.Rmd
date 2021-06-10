@@ -1,0 +1,651 @@
+---
+title: "Analysis of Friends of Casco Bay DIN Data"
+author: "Curtis C. Bohlen, Casco Bay Estuary Partnership."
+date: "04/26/2021"
+output:
+  github_document:
+    toc: true
+    fig_width: 5
+    fig_height: 4
+---
+
+<img
+    src="https://www.cascobayestuary.org/wp-content/uploads/2014/04/logo_sm.jpg"
+    style="position:absolute;top:10px;right:50px;" />
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.align = 'center',
+                      fig.width = 5, fig.height = 4,
+                      collapse = TRUE, comment = "#>")
+```
+
+# Introduction
+This notebook Looks at DIN and TN numbers from Friends of Casco Bay samples.
+
+FOCB reports the TN samples and DIN samples were sent to different laboratories,
+and so direct comparison relies on consistent calibration, etc. across two labs.
+Accordingly, here we restrict our analysis to looking at the two data sources as
+complementary views of nitrogen in Casco Bay.
+
+FOCB also reports that some DIN samples over the years had unusually high
+ammonium values, and that those samples were noted by the laboratory conducting
+the analyses, but not flagged as errors.  We create alternate data with select
+samples removed from Ammonia and DIN values, but mostly focus on using robust
+and resistant methods to minimize impact of those possibly erroneous samples.
+
+A useful discussion of available robust and resistant methods in R is available 
+on a [CRAN "Task View" for robust statistics]( https://cran.r-project.org/web/views/Robust.html).
+
+*  The `rlm()` and `lqs()` functions from MASS are fairly general, using
+   m-estimators and minimization of only a subset of residuals, respectively.  
+*  The `mblm()` function from `mblm` package offers simple linear regression
+   models, but limited flexibility.  it does not handle categorical variables
+   thoroughly.  
+*  The WRS2 package addresses relatively simple ANOVA and ACOVA structures with
+   several alternate modeling approaches.  
+*  The `walrus` package is built on WRS2, but offers simplified user interface 
+   and fewer functions.  It handles robust ANOVA and T tests.  
+
+#Load Libraries
+```{r}
+library(MASS) # for `rlm()` ans `lqs()`for robust regression
+              # also `cov.rob()` for robust multivariate scatter and covariance.
+              # Because MASS contains a function `select()` that conflicts with
+              # the tidyverse `select()` function, `MASS` should be loaded before
+              # the tidyverse.
+
+#library(readr)
+library(readxl)
+library(tidyverse)
+
+library(mgcv)    # For generalized linear models
+#library(mblm)     # for median-based linear\models -- suitable for simple robust methods.
+library(emmeans)
+library(moments)  # for skewness and kurtosis)
+
+library(sfsmisc)  # Provides alternative access to wald test for robust models
+
+#library(Ternary) # Base graphics ternary plots
+
+library(CBEPgraphics)
+load_cbep_fonts()
+theme_set(theme_cbep())
+```
+
+# Load Data
+## Folder References
+```{r folder_refs}
+sibfldnm <- 'Derived_Data'
+parent <- dirname(getwd())
+sibling <- file.path(parent,sibfldnm)
+
+dir.create(file.path(getwd(), 'figures'), showWarnings = FALSE)
+```
+
+## Load Data
+The data we use her has had a number of suspiciously high NH4 values removed.
+See "FOCB_Nutrients_Combined.Rmd" for details and explanation/
+```{r load_data}
+strict_data <- read_csv(file.path(sibling, 
+                                 "focb_n_data_strict.csv"))%>%
+  mutate(month = factor(month, levels = month.abb),
+         yearf = factor(year))
+```
+
+# Station Names
+```{r folder_refs_2}
+fn <- 'FOCB Monitoring Sites SHORT NAMES.xlsx'
+names_df <- read_excel(file.path(sibling, fn))
+```
+
+# Data Review
+## Data Prevalence
+```{r}
+xtabs(~station + year, data = strict_data[! is.na(strict_data$din),])
+```
+DIN data has been collected fairly consistently from a handful of sites over 
+many years, and from many sites only in 2019.
+
+## Data Distributions
+```{r din_hist}
+ggplot(strict_data , aes(din)) +
+  geom_histogram()
+```
+
+A log transform is "too stong" for DIN and leaves us skewed the other way.
+```{r din_site_hist}
+ggplot(strict_data , aes(din)) +
+  geom_histogram(aes(fill = station)) +
+  theme(legend.position = 'none') +
+  scale_x_log10()
+```
+
+So data is distributed somewhere between normal and lognormal in terms of
+skewness. But that skew could be due to data distributions, inappropriate 
+transforms, or differences in sampling frequency among stations or years.
+
+We can partially correct by using a generalized log transform, although
+selection of the addative constant is fairly arbitrary.
+
+(but not this assessmsnt changes with some data subsets, below).
+```{r din_log_hist}
+ggplot(strict_data , aes(log1p(din))) +
+  geom_histogram(aes(fill = station)) +
+  theme(legend.position = 'none')
+```
+
+But the log plus one  transform looks pretty good for most stations.
+```{r facet_din_densities, fig.width = 7, fig.height = 5}
+ggplot(strict_data , aes(log1p(din + 1))) +
+  geom_density(aes(fill = station)) +
+  facet_wrap(~ station) +
+  theme_minimal() +         # restores gridlines
+  theme(legend.position = 'none')
+```
+A number of sites show tendencies towards bimodal distributions of DIN. Later 
+analyses suggest that may reflect seasonal patterns.
+
+## Cross- Plot DIN by TN
+```{r tn_din_plot_ammonium_strict, fig.height = 5, fig.width = 7}
+ggplot(strict_data, aes(tn, din_N)) + 
+  geom_point(aes(fill = month), size = 2, shape = 21, alpha = 0.5) +
+  geom_abline(intercept = 0, slope = 1) +
+  #scale_fill_manual(values = cbep_colors()) +
+  coord_equal() +
+  theme_cbep(base_size = 12) +
+    ylab('DIN (mg/ l as N)') +
+    xlab('TN (mg/l)')
+```
+# Recent Conditions
+Recent conditions include data from 2015 through 2019.
+
+We remove the data for KVL84 from these analyses, because we have very 
+limited local data from that site.
+
+```{r}
+recent_data <- strict_data %>%
+  filter(year > 2014) %>%
+  filter(station != 'KVL84')
+```
+
+## Add Shortened Site Names
+The key step here is reordering by median nitrogen values. That ordering will
+need to be harmonized with TN ordering to generate final graphics.
+```{r}
+recent_data <- recent_data %>%
+   mutate(station_name = names_df$Alt_Name[match(station,
+                                                names_df$Station_ID)]) %>%
+   mutate(station = factor(station),
+          station_name = factor(station_name)) %>%
+   mutate(station = fct_reorder(station, tn, na.rm = TRUE),
+         station_name = fct_reorder(station_name, tn, na.rm = TRUE)) %>%
+   relocate(station_name, .after = station) %>%
+   select(-tn_depth, -tn, -organic_N)
+```
+
+# Extract Recent Results
+This is the simplest analysis, with no hierarchical modeling.  We drop the 
+extreme TN values, ass we do for most analyses coming up.
+```{r}
+recent_results <- recent_data %>%
+  group_by(station) %>%
+  summarize(across(nox:nh4_N, c(mn = ~ mean(.x, na.rm = TRUE),
+                                  sd = ~ sd(.x, na.rm = TRUE), 
+                                  n = ~sum(! is.na(.x)),
+                                  md = ~ median(.x, na.rm = TRUE),
+                                  iqr = ~ IQR(.x, na.rm = TRUE),
+                                  p90 = ~ quantile(.x, .9, na.rm = TRUE),
+                                  gm = ~ exp(mean(log(.x), na.rm = TRUE))))) %>%
+  mutate(station_name = names_df$Alt_Name[match(station,
+                                                names_df$Station_ID)]) %>%
+  mutate(station = fct_reorder(factor(station), din_md),
+         station_name = fct_reorder(factor(station_name), din_md)) %>%
+  relocate(station_name, .after = station)
+```
+
+## Sample Frequencies
+```{r}
+recent_results %>%
+  select(station, contains('_N_n') )
+```
+
+We note that several stations have fewer than ten DIN samples over that period of
+time. Only one site (KVL84, Knightville Landing, in South Portland) has fewer 
+than five DIN values.  It and was dropped, above, for lack of recent data.
+
+TN values are somewhat more abundant, with only a single site with fewer than
+ten TN samples.
+
+With the relatively low sample sizes for most sites, complex models may 
+perform poorly.  Interactions with time of year and year, in particular, will
+lead to many empty cells in the implicit model design.
+
+# Models
+We want to look at recent conditions, taking into account as best we can 
+possible covariates, including year and time of year.  Our goal is to extract
+marginal means by station for the recent data, and evaluate trends for the
+long-term data.
+
+# Recent Data
+## Linear Model
+We begin by constructing conventional linear models on log transformed DIN data.
+```{r}
+full_din_lm <- lm(log(din_N) ~ station *  month + yearf, data = recent_data)
+anova(full_din_lm)
+```
+
+Stepwise model selection confirms that the interaction term is of little value
+(by AIC; not shown) .
+```{r}
+din_lm <- lm(log(din_N) ~ station +  month + yearf, data = recent_data)
+anova(din_lm)
+```
+### Model Diagnostics
+```{r}
+oldpar <- par(mfrow = c(2,2))
+plot(din_lm)
+par(oldpar)
+```
+We have a few values that are fairly badly underestimated (large negative 
+residuals), but this is not dreadful. Residuals are somewhat heavy tailed.
+
+```{r}
+recent_data[c(149, 430, 501),]
+```
+The poorly fit samples are all from 2015 and 2016, warm season.  It is possible 
+the fit for those years is affected by the prevalence of winter samples, with
+the unbalanced sampling history biasing estimates.
+
+### Marginal Means
+```{r}
+din_emms_lm <- emmeans(din_lm, 'station', type = 'response')
+din_emms_lm_jul <- emmeans(din_lm, 'station', type = 'response', 
+                       at = list(month = 'Jul'))
+
+plot(din_emms_lm) + coord_flip() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.25))
+```
+### Compare to Obsereved Means
+Unfortunately, this model does a fairly poor job regenerating the 
+means from the original data, and standard errors for some estimates are 
+very large (note the log-log plot).  This suggests this model is performing 
+poorly.
+```{r}
+compare <- recent_results %>%
+  select(station, station_name, contains('tn'), contains('din_N')) %>%
+  full_join(din_emms_lm, by = 'station', suffix = c('.data', '.lm'), copy = TRUE)
+
+ggplot(compare, aes(din_N_mn, response)) +
+  geom_abline(slope = 1, intercept = 0) + 
+  geom_point(size = 3, color = 'blue') +
+  geom_linerange(aes(xmin = din_N_mn - 2 * din_N_sd/sqrt(din_N_n), 
+                     xmax = din_N_mn + 2 * din_N_sd/sqrt(din_N_n))) +
+  geom_linerange(aes(ymin = lower.CL, ymax = upper.CL)) +
+  xlab('Observed ') +
+  ylab('Log Linear Model') +
+  coord_equal() +
+  scale_x_log10() +
+  scale_y_log10()
+```
+
+## Simplified Linear Models
+We look at a linear models that do not include as many predictors, and show that 
+they return marginal means that DO match the observed means fairly well.
+```{r}
+red_din_lm  <- lm(log(din_N) ~ station, data = recent_data)
+din_emms_red_lm     <- emmeans(red_din_lm,     'station', type = 'response')
+```
+
+
+### Compare to Observed Means
+```{r}
+compare <- recent_results %>%
+  select(station, station_name, contains('tn'), contains('din_N')) %>%
+  full_join(din_emms_red_lm, by = 'station', suffix = c('.data', '.lm'), copy = TRUE)
+
+ggplot(compare, aes(din_N_mn, response)) +
+  geom_abline(slope = 1, intercept = 0) + 
+  geom_point(size = 3, color = 'blue') +
+  geom_linerange(aes(xmin = din_N_mn - 2 * din_N_sd/sqrt(din_N_n), 
+                     xmax = din_N_mn + 2 * din_N_sd/sqrt(din_N_n))) +
+  geom_linerange(aes(ymin = lower.CL, ymax = upper.CL)) +
+  xlab('Observed ') +
+  ylab('Linear Model') +
+  coord_equal() +
+  scale_x_log10() +
+  scale_y_log10()
+```
+Standard errors are still fairly large, but the model at least provides
+results closer to observed means.  Error bars tend to overlap the 1:1 line.
+The differences here probably reflect the differences between geometric and 
+arithmetic means.
+
+All this suggests we are slicing these data too finely, and we should take a 
+different approach. We have good data coverage from 2019, so we can restrict 
+attention to 2019.
+
+## GAM Model
+We can use a GAM model to look more closely at seasonal patterns.
+```{r}
+din_gam <- gam(log(din_N) ~ station +  s(doy, bs = 'cc', k = 5) + 
+                                         s(yearf, bs = 're'), 
+               data = recent_data)
+anova(din_gam)
+```
+
+```{r}
+plot(din_gam)
+```
+The day of year smoother may be slightly over fit here, and we have not fully
+explored interactions between seasonal effects and station.
+
+```{r}
+oldpar <- par(mfrow = c(2,2))
+gam.check(din_gam)
+par(oldpar)
+```
+Those diagnostics are not too bad, with the exception of large negative 
+residuals again.
+
+#### GAM Marginal Means
+```{r}
+din_emms_gam <- emmeans(din_gam, 'station', type = 'response', 
+                        cov_reduce = median,
+                        cov_keep = 'year',
+                        at = list(doy = 200))
+plot(din_emms_gam) + coord_flip() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.25))
+din_emms_gam <- as_tibble(din_emms_gam)
+```
+### Compare to Observed Mean
+```{r}
+compare <- recent_results %>%
+  select(station, station_name, contains('tn'), contains('din_N')) %>%
+  full_join(din_emms_gam, by = 'station', suffix = c('.data', '.lm'), copy = TRUE)
+
+ggplot(compare, aes(din_N_mn, response)) +
+  geom_abline(slope = 1, intercept = 0) + 
+  geom_point(size = 3, color = 'blue') +
+  geom_linerange(aes(xmin = din_N_mn - 2 * din_N_sd/sqrt(din_N_n), 
+                     xmax = din_N_mn + 2 * din_N_sd/sqrt(din_N_n))) +
+  geom_linerange(aes(ymin = lower.CL, ymax = upper.CL)) +
+  xlab('Observed ') +
+  ylab('Log Linear Model') +
+  coord_equal() +
+  scale_x_log10() +
+  scale_y_log10()
+```
+
+This does better than the linear model, but only slightly
+
+## Sample Sizes are Wildly Unequal
+Sample sizes are wildly unequal....
+```{r}
+xtabs(~ year + month, data = recent_data , subset = ! is.na(din))
+```
+
+So, seasonal trnds outside of summer rest on just a handful of observations in
+each of 2015 and 2016.
+
+```{r}
+xtabs(~ station + year, data = recent_data , subset = ! is.na(din))
+```
+And those observations come from just a handful of sites.
+
+The problem here is the uneven sampling history.  We are trying to overinterpret
+available data, leading to statistically unstable estimates.
+
+# Restricted DIN Data (Year = 2019)
+Our primary goal is to provide a map and accompanying chart of DIN levels.  For
+that, we want to compare all sites on an even footing.  We now know that there
+are important annual and seasonal processes at work, so the uneven sampling
+history affects estimates of site conditions.
+
+Data coverage in 2019 is fairly consistent.  Coverage is sparse, but
+consistent across stations (but not months) in 2017 as well.
+
+We restrict further attention to just 2019, as that data will not be affected by 
+the uneven sampling history to the same extent.
+
+```{r}
+yr_2019_data <- recent_data %>%
+  filter(year == 2019)  %>%
+  select(station, station_name, dt, month, doy, din_N)
+```
+
+```{r}
+ggplot(yr_2019_data, aes(din_N)) +
+  geom_histogram() +
+  scale_x_continuous(trans = 'log')
+```
+
+```{r}
+ggplot(yr_2019_data, aes(din_N, station_name)) +
+  geom_point(aes(color = month)) +
+  scale_x_log10()
+```
+
+### Calculate Descriptive Statistics
+```{r}
+results_2019 <- yr_2019_data %>%
+  group_by(station) %>%
+  summarize(across(din_N, c(mn = ~ mean(.x, na.rm = TRUE),
+                                  sd = ~ sd(.x, na.rm = TRUE), 
+                                  n = ~sum(! is.na(.x)),
+                                  md = ~ median(.x, na.rm = TRUE),
+                                  iqr = ~ IQR(.x, na.rm = TRUE),
+                                  p90 = ~ quantile(.x, .9, na.rm = TRUE),
+                                  gm = ~ exp(mean(log(.x), na.rm = TRUE))))) %>%
+  mutate(station_name = names_df$Alt_Name[match(station,
+                                                names_df$Station_ID)]) %>%
+  mutate(station = fct_reorder(factor(station), din_N_md),
+         station_name = fct_reorder(factor(station_name), din_N_md)) %>%
+  relocate(station_name, .after = station)
+```
+
+### Linear Model
+```{r}
+din_lm_2019_draft <- lm(log(din_N) ~ station *  month , data = yr_2019_data)
+anova(din_lm_2019_draft)
+```
+```{r}
+din_lm_2019 <- lm(log(din_N) ~ station + month , data = yr_2019_data)
+anova(din_lm_2019)
+```
+#### Marginal Means
+```{r}
+din_emms_lm_2019 <- emmeans(din_lm_2019, 'station', type = 'response')
+plot(din_emms_lm_2019) + coord_flip()+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.25))
+```
+
+```{r}
+din_emms_lm_2019_months <- emmeans(din_lm_2019, 'month', type = 'response')
+plot(din_emms_lm_2019_months) + coord_flip()+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.25))
+```
+
+### Simplified Linear Model
+```{r}
+din_lm_2019_red <- lm(log(din_N) ~ station  , data = yr_2019_data)
+anova(din_lm_2019_red)
+```
+#### Marginal Means
+```{r}
+din_emms_lm_2019_red <- emmeans(din_lm_2019_red, 'station', type = 'response')
+plot(din_emms_lm_2019_red) + coord_flip() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.25))
+```
+Qualitatively nearly indistinguishable, although stnadard errors are likely 
+larger.
+
+###  Robust Linear Model
+Thee `rlm()` function from `MASS` implements robust model fitting using M
+estimators.  These are estimators that do not use least squares as a criterion
+for model fit.  Instead, they use other symmetric functions to quantify the
+relative importance of the deviation of each observation from model predictions.
+To achieve "robust" qualities, these functions drop off in value at higher
+deviations from model predictions, making extreme points count less, or not at 
+all, when fitting the model.
+
+Robust linear models, as implemented via `rlm()` from the `MASS`
+package do not accept models not of full rank, which is proven a bit of
+a problem for these uneven data sets. We can not fit a station + month model.
+```{r error = TRUE}
+din_rlm_2019_FAILS <- rlm(log(din_N) ~ station + month, 
+                     na.action = na.omit,
+                     data = yr_2019_data)
+```
+
+```{r error = TRUE}
+din_rlm_2019 <- rlm(log(din_N) ~ station, 
+                     na.action = na.omit,
+                     data = yr_2019_data)
+```
+
+
+#### Marginal Means
+```{r}
+din_emms_lm_2019 <- as_tibble(emmeans(din_lm_2019, 
+                                      'station', type = 'response'))
+din_emms_rlm_2019 <- as_tibble(emmeans(din_rlm_2019, 
+                                      'station', type = 'response'))
+```
+
+## GAM model
+We can use a GAM model to look at seasonal patterns within this one year, but
+this also may be overfitting available data.  We don't fit a cyclic smoother
+because our data covers only a small portion of the year.
+```{r}
+din_gam_2019 <- gam(log(din_N) ~ station +  s(doy, bs = 'cs'), 
+               data = yr_2019_data)
+anova(din_gam_2019)
+```
+
+```{r}
+plot(din_gam_2019)
+```
+The day of year smoother may be slightly over fit here.
+
+```{r}
+oldpar <- par(mfrow = c(2,2))
+gam.check(din_gam)
+par(oldpar)
+```
+Those diagnostics are not too bad, with the exception of large negative 
+residuals again.
+
+#### GAM Marginal Means
+```{r}
+din_emms_gam_2019 <- emmeans(din_gam_2019, 'station', type = 'response')
+plot(din_emms_gam_2019) + coord_flip() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.25))
+din_emms_gam_2019 <- as_tibble(din_emms_gam_2019)
+```
+
+
+### Compare Model Results -- Does Model Selection Matter?
+#### Compare Models to Observed Means
+##### Log Linear Model
+```{r}
+compare <- results_2019 %>%
+  select(station, station_name, contains('tn'), contains('din_N')) %>%
+  full_join(din_emms_lm_2019, by = 'station', suffix = c('.data', '.lm'), 
+            copy = TRUE)
+
+ggplot(compare, aes(din_N_mn, response)) +
+  geom_abline(slope = 1, intercept = 0) + 
+  geom_point(size = 3, color = 'blue') +
+  geom_linerange(aes(xmin = din_N_mn - 2 * din_N_sd/sqrt(din_N_n), 
+                     xmax = din_N_mn + 2 * din_N_sd/sqrt(din_N_n))) +
+  geom_linerange(aes(ymin = lower.CL, ymax = upper.CL)) +
+  xlab('Observed ') +
+  ylab('Robust Linear Model') +
+  coord_equal() +
+  scale_x_log10()+
+  scale_y_log10()
+```
+The log linear model generally fits means slightly lower than observed. This 
+is what is expected as we are effectively fitting geometric means instead of
+arithmetic means.
+
+##### Robust Log Linear Model
+```{r}
+compare <- results_2019 %>%
+  select(station, station_name, contains('tn'), contains('din_N')) %>%
+  full_join(din_emms_rlm_2019, by = 'station', suffix = c('.data', '.lm'), 
+            copy = TRUE)
+
+ggplot(compare, aes(din_N_mn, response)) +
+  geom_abline(slope = 1, intercept = 0) + 
+  geom_point(size = 3, color = 'blue') +
+  geom_linerange(aes(xmin = din_N_mn - 2 * din_N_sd/sqrt(din_N_n), 
+                     xmax = din_N_mn + 2 * din_N_sd/sqrt(din_N_n))) +
+  geom_linerange(aes(ymin = asymp.LCL, ymax = asymp.UCL)) +
+  xlab('Observed ') +
+  ylab('Robust Linear Model') +
+  coord_equal() +
+  scale_x_log10()+
+  scale_y_log10()
+```
+Results of the robust model are very similar.
+
+
+##### GAM Model
+```{r}
+compare <- results_2019 %>%
+  select(station, station_name, contains('tn'), contains('din_N')) %>%
+  full_join(din_emms_gam_2019, by = 'station', suffix = c('.data', '.lm'), 
+            copy = TRUE)
+
+ggplot(compare, aes(din_N_mn, response)) +
+  geom_abline(slope = 1, intercept = 0) + 
+  geom_point(size = 3, color = 'blue') +
+  geom_linerange(aes(xmin = din_N_mn - 2 * din_N_sd/sqrt(din_N_n), 
+                     xmax = din_N_mn + 2 * din_N_sd/sqrt(din_N_n))) +
+  geom_linerange(aes(ymin = lower.CL, ymax = upper.CL)) +
+  xlab('Observed ') +
+  ylab('GAM Model') +
+  coord_equal() +
+  scale_x_log10()+
+  scale_y_log10()
+```
+
+The GAM model provides adjusted estimates that generally lie close to the 
+observed means.  These estimates are effectively adjusted for different sampling 
+histories.  Note that error bars are higher than for the straight means.
+
+#### Compare Log Linear and Robust Log Linear Models
+We can show that more clearly by plotting the predictions of the two models 
+against one another.
+```{r}
+compare <- as_tibble(din_emms_lm_2019) %>%
+  full_join(din_emms_rlm_2019, by = 'station', suffix = c('.lm', '.rlm'))
+ggplot(compare, aes(response.lm, response.rlm)) +
+  geom_abline(slope = 1, intercept = 0) + 
+  geom_point(size = 3, color = 'blue') +
+  geom_linerange(aes(xmin = lower.CL, xmax = upper.CL)) +
+  geom_linerange(aes(ymin = asymp.LCL, ymax = asymp.UCL)) +
+  xlab('Linear Model') +
+  ylab('Robust Linear Model') +
+  coord_equal() +
+  scale_x_log10()+
+  scale_y_log10()
+```
+So, results are qualitatively similar. There is no strong reason to prefer the 
+robust estimates to the linear model estimates where qualitative results are 
+similar and model diagnostics are fairly good.
+
+### DIN  Recent Condition Conclusions
+Restricting attention to 2019 makes sense. There appears to be little advantage
+to robust models.  Even so, there are several approaches possible:  
+1.  Just use observed means / medians.  
+2.  Use fitted means from the simplest linear models.  This effectively fits
+    geometric means, not arithmetic means, and pools error estimates.   
+3.  Use Marginal Means from the GAM model - -these are effectively adjusted for
+    different  sampling histories.
+    
+# Trend Analysis
+## Data Prevalence
+## Generate Trend Data
+
