@@ -675,6 +675,7 @@ trend_sites
 ```{r make_trend_data}
 trend_data <- strict_data %>%
   filter(station %in% trend_sites) %>%
+  filter(! is.na(din_N)) %>%
    mutate(station_name = names_df$Alt_Name[match(station,
                                                 names_df$Station_ID)]) %>%
    mutate(station = factor(station),
