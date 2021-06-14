@@ -20,31 +20,7 @@ knitr::opts_chunk$set(fig.align = 'center',
 ```
 
 # Introduction
-This notebook Looks at DIN and TN numbers from Friends of Casco Bay samples.
-
-FOCB reports the TN samples and DIN samples were sent to different laboratories,
-and so direct comparison relies on consistent calibration, etc. across two labs.
-Accordingly, here we restrict our analysis to looking at the two data sources as
-complementary views of nitrogen in Casco Bay.
-
-FOCB also reports that some DIN samples over the years had unusually high
-ammonium values, and that those samples were noted by the laboratory conducting
-the analyses, but not flagged as errors.  We create alternate data with select
-samples removed from Ammonia and DIN values, but mostly focus on using robust
-and resistant methods to minimize impact of those possibly erroneous samples.
-
-A useful discussion of available robust and resistant methods in R is available 
-on a [CRAN "Task View" for robust statistics]( https://cran.r-project.org/web/views/Robust.html).
-
-*  The `rlm()` and `lqs()` functions from MASS are fairly general, using
-   m-estimators and minimization of only a subset of residuals, respectively.  
-*  The `mblm()` function from `mblm` package offers simple linear regression
-   models, but limited flexibility.  it does not handle categorical variables
-   thoroughly.  
-*  The WRS2 package addresses relatively simple ANOVA and ACOVA structures with
-   several alternate modeling approaches.  
-*  The `walrus` package is built on WRS2, but offers simplified user interface 
-   and fewer functions.  It handles robust ANOVA and T tests.  
+This notebook Looks at TN numbers from Friends of Casco Bay samples.
 
 # Load Libraries
 ```{r}
@@ -878,7 +854,7 @@ ggplot(recent_data, aes(tn, station_name)) +
   geom_point(alpha = 0.5, color = cbep_colors()[3]) +
   
   ylab('') +
-  xlab('Dissolved Inorganic Nitrogen\n(mg/l as N)') +
+  xlab('Total Nitrogen\n(mg/l)') +
   theme_cbep(base_size = 12) +
   theme(axis.title.x = element_text(size = 10))  +
   scale_x_log10()
@@ -898,7 +874,7 @@ ggplot(recent_data, aes(tn, station_name)) +
   geom_point(alpha = 0.5, color = cbep_colors()[3]) +
   
   ylab('') +
-  xlab('Dissolved Inorganic Nitrogen\n(mg/l as N)') +
+  xlab('Total Nitrogen\n(mg/l)') +
   theme_cbep(base_size = 12) +
   theme(axis.title.x = element_text(size = 10)) +
   scale_x_log10()
@@ -918,7 +894,7 @@ ggplot(recent_data, aes(tn, station_name)) +
   geom_point(alpha = 0.5, color = cbep_colors()[3]) +
   
   ylab('') +
-  xlab('Dissolved Inorganic Nitrogen\n(mg/l as N)') +
+  xlab('Total Nitrogen\n(mg/l)') +
   theme_cbep(base_size = 12) +
   theme(axis.title.x = element_text(size = 10)) +
   scale_x_log10()
@@ -951,7 +927,7 @@ ggplot(tn_emms_gam, aes(response, station_name)) +
  # geom_point(data = recent_results, mapping = aes(tn_gm, station_name, ),
    #           size = 2, color = cbep_colors()[6]) +
   ylab('') +
-  xlab('Dissolved Inorganic Nitrogen\n(mg/l as N)') +
+  xlab('Total Nitrogen\n(mg/l)') +
   theme_cbep(base_size = 12) +
   theme(axis.title.x = element_text(size = 10)) +
   scale_x_log10()
@@ -976,7 +952,7 @@ with the recent data.
              color = cbep_colors()[2]) +
   
   ylab('') +
-  xlab('Dissolved Inorganic Nitrogen\n(mg/l as N)') +
+  xlab('Total Nitrogen\n(mg/l)') +
   theme_cbep(base_size = 12) +
   theme(axis.title.x = element_text(size = 10)) +
   scale_x_log10()
@@ -993,7 +969,7 @@ ggplot(recent_data, aes(tn, station_name)) +
   geom_point(alpha = 0.5, color = cbep_colors()[3]) +
   
   ylab('') +
-  xlab('Dissolved Inorganic Nitrogen\n(mg/l as N)') +
+  xlab('Total Nitrogen\n(mg/l)') +
   theme_cbep(base_size = 12) +
   theme(axis.title.x = element_text(size = 10))  +
   scale_x_log10()
@@ -1001,10 +977,10 @@ ggplot(recent_data, aes(tn, station_name)) +
 That's overdone.... 
 
 # Trend Analysis
-Few stations have data from more than a few years.  DIN data has been collected 
-over the past couple of years, at several stations in the mid 200s, and at a
+Few stations have data from more than a few years.  TN data has been collected 
+over the past couple of years, at several stations in the mid 2000s, and at a
 handful of stations pretty much every year since 2001.  Generally the rule we 
-have used to examine trends is to ficus on sites with relatively complete 
+have used to examine trends is to focus on sites with relatively complete 
 records, say at least two of the last five years and at least
 ten years total.  
 
@@ -1160,7 +1136,7 @@ core_months_summary  <-   core_months_data %>%
 ```
 
 
-```{r core_months_jitter_plot_by_date, fig.height = 7, fig.width = 3}
+```{r core_months_plot_by_date, fig.height = 7, fig.width = 3}
 ggplot(core_months_data) +
   geom_point(aes(dt, tn, color = station_name), alpha = 0.5) + 
   geom_line(data = core_months_summary, 
@@ -1174,7 +1150,7 @@ ggplot(core_months_data) +
   theme(legend.position = 'None',
         panel.spacing.x = unit(2.5, "lines")) +
   xlab('') +
-  ylab('DIN (mg/l as N)')
+  ylab('TN (mg/l)')
 ```
 
 

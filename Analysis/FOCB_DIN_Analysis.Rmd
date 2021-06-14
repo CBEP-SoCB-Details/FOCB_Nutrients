@@ -973,7 +973,7 @@ There appears to be little advantage to robust models.  Even so, there are sever
 Few stations have data from more than a few years.  DIN data has been collected 
 over the past couple of years, at several stations in the mid 200s, and at a
 handful of stations pretty much every year since 2001.  Generally the rule we 
-have used to examine trends is to ficus on sites with relatively complete 
+have used to examine trends is to focus on sites with relatively complete 
 records, say at least two of the last five years and at least
 ten years total.  
 

@@ -665,7 +665,7 @@ gam.check(din_gam)
     #> indicate that k is too low, especially if edf is close to k'.
     #> 
     #>            k'  edf k-index p-value  
-    #> s(doy)   3.00 2.79    0.91   0.035 *
+    #> s(doy)   3.00 2.79    0.91   0.045 *
     #> s(yearf) 4.00 2.78      NA      NA  
     #> ---
     #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
@@ -1444,7 +1444,7 @@ gam.check(din_gam)
     #> indicate that k is too low, especially if edf is close to k'.
     #> 
     #>            k'  edf k-index p-value  
-    #> s(doy)   3.00 2.79    0.91   0.035 *
+    #> s(doy)   3.00 2.79    0.91   0.055 .
     #> s(yearf) 4.00 2.78      NA      NA  
     #> ---
     #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
@@ -1598,7 +1598,7 @@ adjusted for different sampling histories, especially time of year.
 Few stations have data from more than a few years. DIN data has been
 collected over the past couple of years, at several stations in the mid
 200s, and at a handful of stations pretty much every year since 2001.
-Generally the rule we have used to examine trends is to ficus on sites
+Generally the rule we have used to examine trends is to focus on sites
 with relatively complete records, say at least two of the last five
 years and at least ten years total.
 
