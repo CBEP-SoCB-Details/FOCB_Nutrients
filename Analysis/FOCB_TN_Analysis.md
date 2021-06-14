@@ -33,7 +33,7 @@ Curtis C. Bohlen, Casco Bay Estuary Partnership.
         -   [Descriptive Statistics](#descriptive-statistics)
         -   [Compare Model Results – Does it
             Matter?](#compare-model-results--does-it-matter-1)
-    -   [Conclusions.](#conclusions)
+    -   [Conclusions](#conclusions)
 -   [Graphic Ideas](#graphic-ideas)
     -   [Potential Plot \#1 Points Only](#potential-plot-1-points-only)
     -   [Potential Plot \#2 Points with Medians and
@@ -134,7 +134,7 @@ library(mgcv)    # For generalized linear models
 library(emmeans)
 library(moments)  # for skewness and kurtosis)
 
-library(sfsmisc)  # Provides alternative access to wald test for robust models
+library(sfsmisc)  # Provides alternative access to Wald test for robust models
 #> Warning: package 'sfsmisc' was built under R version 4.0.5
 #> 
 #> Attaching package: 'sfsmisc'
@@ -158,7 +158,7 @@ sibfldnm <- 'Derived_Data'
 parent <- dirname(getwd())
 sibling <- file.path(parent,sibfldnm)
 
-dir.create(file.path(getwd(), 'figures'), showWarnings = FALSE)
+#dir.create(file.path(getwd(), 'figures'), showWarnings = FALSE)
 ```
 
 ## Load Data
@@ -960,7 +960,7 @@ practical (as opposed to statistical) problems it causes. The problem is
 that our data is sampled at different dates and times, so the model may
 be fitting a biased subsample of possible observations.
 
-We focus on a gam model without the day of year smoother, which is
+We focus on a GAM model without the day of year smoother, which is
 effectively a simple hierarchical model that treats year as a random
 factor.
 
@@ -1090,9 +1090,9 @@ ggplot(compare, aes(tn_mn, response)) +
 <img src="FOCB_TN_Analysis_files/figure-gfm/compare_gam-1.png" style="display: block; margin: auto;" />
 The GAM also provides similar results. The primary effect of using any
 of these models to provide estimates of typical site conditions is that
-by pooling errors, we end up with lower estimates fof error at sites
-with small sample sizes. W have little evidence of unequal variances at
-differen t sites, so this is probably a real benefit.
+by pooling errors, we end up with lower estimates of error at sites with
+small sample sizes. W have little evidence of unequal variances at
+different sites, so this is probably a real benefit.
 
 #### Compare Log Linear and Robust Log Linear Models
 
@@ -1165,7 +1165,7 @@ the to large standard errors.
 One way we can improve on those models is to restrict our attention to
 just the last couple of years, when time of year of samples were more
 consistent, with samples collected only in warmer months. This turns out
-to make little difference to teh qualitative interpretation of the data.
+to make little difference to the qualitative interpretation of the data.
 
 ``` r
 data_18_19 <- recent_data %>%
@@ -1357,7 +1357,7 @@ smoother (shown) fits a wiggly day of year curve with effective degrees
 of freedom close to 8 that is not reasonable for representing a seasonal
 pattern.
 
-But as we resuced the dimensionality of the smoothers, we got
+But as we reduced the dimensionality of the smoothers, we got
 increasingly low predictive ability, and signs that the dimensionality
 of the smoother was too low. The effect is that it is unclear whether to
 retail the smoother or
@@ -1534,7 +1534,7 @@ ggplot(compare, aes(response.gam, response.rlm)) +
 <img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-54-1.png" style="display: block; margin: auto;" />
 We see high correlation.
 
-## Conclusions.
+## Conclusions
 
 There is only limited value to presenting model results to SoCB readers.
 
@@ -1546,7 +1546,7 @@ It may be simplest to just show observed means for recent years.
 
 # Graphic Ideas
 
-These are based on the Full Data, not the rrestricted data \#\# Trim
+These are based on the Full Data, not the restricted data \#\# Trim
 Outliers
 
 ``` r

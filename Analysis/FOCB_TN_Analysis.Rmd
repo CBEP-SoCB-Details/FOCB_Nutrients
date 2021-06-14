@@ -63,7 +63,7 @@ library(mgcv)    # For generalized linear models
 library(emmeans)
 library(moments)  # for skewness and kurtosis)
 
-library(sfsmisc)  # Provides alternative access to wald test for robust models
+library(sfsmisc)  # Provides alternative access to Wald test for robust models
 
 #library(Ternary) # Base graphics ternary plots
 
@@ -79,7 +79,7 @@ sibfldnm <- 'Derived_Data'
 parent <- dirname(getwd())
 sibling <- file.path(parent,sibfldnm)
 
-dir.create(file.path(getwd(), 'figures'), showWarnings = FALSE)
+#dir.create(file.path(getwd(), 'figures'), showWarnings = FALSE)
 ```
 
 ## Load Data
@@ -455,7 +455,7 @@ practical (as opposed to statistical) problems it causes. The problem is that
 our data is sampled at different dates and times, so the model may be fitting
 a biased subsample of possible observations.
 
-We focus on a gam model without the day of year smoother, which is effectively a 
+We focus on a GAM model without the day of year smoother, which is effectively a 
 simple hierarchical model that treats year as a random factor.
 
 ```{r}
@@ -548,8 +548,8 @@ ggplot(compare, aes(tn_mn, response)) +
 ```
 The GAM also provides similar results.  The primary effect of using any of these
 models to provide estimates of typical site conditions is that by pooling 
-errors, we end up with lower estimates fof error at sites with small sample 
-sizes.  W have little evidence of unequal variances at differen t sites, so this 
+errors, we end up with lower estimates of error at sites with small sample 
+sizes.  W have little evidence of unequal variances at different sites, so this 
 is probably a real benefit.
 
 #### Compare Log Linear and Robust Log Linear Models
@@ -608,7 +608,7 @@ to large standard errors.
 One way we can improve on those models is to restrict our attention to just the
 last couple of years, when time of year of samples were more consistent,
 with samples collected only in warmer months.  This turns out to make little
-difference to teh qualitative interpretation of the data.
+difference to the qualitative interpretation of the data.
 ```{r}
 data_18_19 <- recent_data %>%
   filter(year > 2017) %>%
@@ -728,7 +728,7 @@ We explored several different smoother specifications.  The default
 smoother (shown) fits a wiggly day of year curve with effective degrees of
 freedom close to 8 that is not reasonable for representing a seasonal pattern.
 
-But as we resuced the dimensionality of the smoothers, we got increasingly 
+But as we reduced the dimensionality of the smoothers, we got increasingly 
 low predictive ability, and signs that the dimensionality of the smoother was 
 too low.  The effect is that it is unclear whether to retail the smoother or 
 
@@ -854,7 +854,7 @@ ggplot(compare, aes(response.gam, response.rlm)) +
 ```
 We see high correlation.
 
-## Conclusions.
+## Conclusions
 There is only limited value to presenting model results to SoCB readers.  
 
 Results are largely independent of model selection, especially for the data
@@ -864,7 +864,7 @@ Differences are well within error bands.
 It may be simplest to just show observed means for recent years.
 
 # Graphic Ideas
-These are based on the Full Data, not the rrestricted data
+These are based on the Full Data, not the restricted data
 ## Trim Outliers
 ```{r}
 recent_data <- recent_data %>%
@@ -999,7 +999,6 @@ ggplot(recent_data, aes(tn, station_name)) +
   scale_x_log10()
 ```
 That's overdone.... 
-
 
 # Trend Analysis
 Few stations have data from more than a few years.  DIN data has been collected 

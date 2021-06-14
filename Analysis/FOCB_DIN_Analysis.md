@@ -10,12 +10,11 @@ Curtis C. Bohlen, Casco Bay Estuary Partnership.
     -   [Load Data](#load-data-1)
 -   [Station Names](#station-names)
 -   [Data Review](#data-review)
-    -   [Data Prevalence](#data-prevalence)
     -   [Data Distributions](#data-distributions)
     -   [Cross- Plot DIN by TN](#cross--plot-din-by-tn)
     -   [Add Shortened Site Names](#add-shortened-site-names)
--   [Extract Recent Results](#extract-recent-results)
-    -   [Sample Frequencies](#sample-frequencies)
+    -   [Data Prevalence](#data-prevalence)
+    -   [Extract Recent Results](#extract-recent-results)
 -   [Models](#models)
 -   [Recent Data](#recent-data)
     -   [Linear Model](#linear-model)
@@ -37,8 +36,17 @@ Curtis C. Bohlen, Casco Bay Estuary Partnership.
     -   [GAM model](#gam-model-1)
         -   [Compare Model Results – Does Model Selection
             Matter?](#compare-model-results--does-model-selection-matter)
-        -   [DIN Recent Condition
-            Conclusions](#din-recent-condition-conclusions)
+-   [Restricted Data – Core Months](#restricted-data--core-months)
+    -   [Calculate Descriptive
+        Statistics](#calculate-descriptive-statistics-1)
+    -   [Linear Model](#linear-model-2)
+    -   [Simplified Linear Model](#simplified-linear-model-1)
+    -   [Robust Linear Model](#robust-linear-model-1)
+    -   [GAM model](#gam-model-3)
+        -   [Compare Model Results – Does Model Selection
+            Matter?](#compare-model-results--does-model-selection-matter-1)
+-   [DIN Recent Condition
+    Conclusions](#din-recent-condition-conclusions)
 -   [Trend Analysis](#trend-analysis)
     -   [Identify Trend Stations](#identify-trend-stations)
     -   [Generate Trend Data](#generate-trend-data)
@@ -58,36 +66,19 @@ Curtis C. Bohlen, Casco Bay Estuary Partnership.
 
 # Introduction
 
-This notebook Looks at DIN and TN numbers from Friends of Casco Bay
-samples.
+This notebook Looks at DIN numbers from Friends of Casco Bay samples.
 
 FOCB reports the TN samples and DIN samples were sent to different
 laboratories, and so direct comparison relies on consistent calibration,
 etc. across two labs. Accordingly, here we restrict our analysis to
-looking at the two data sources as complementary views of nitrogen in
-Casco Bay.
+looking at DIN. a Sparate notebook looks at TN.
 
-FOCB also reports that some DIN samples over the years had unusually
-high ammonium values, and that those samples were noted by the
-laboratory conducting the analyses, but not flagged as errors. We create
-alternate data with select samples removed from Ammonia and DIN values,
-but mostly focus on using robust and resistant methods to minimize
-impact of those possibly erroneous samples.
-
-A useful discussion of available robust and resistant methods in R is
-available on a [CRAN “Task View” for robust
-statistics](https://cran.r-project.org/web/views/Robust.html).
-
--   The `rlm()` and `lqs()` functions from MASS are fairly general,
-    using m-estimators and minimization of only a subset of residuals,
-    respectively.  
--   The `mblm()` function from `mblm` package offers simple linear
-    regression models, but limited flexibility. it does not handle
-    categorical variables thoroughly.  
--   The WRS2 package addresses relatively simple ANOVA and ACOVA
-    structures with several alternate modeling approaches.  
--   The `walrus` package is built on WRS2, but offers simplified user
-    interface and fewer functions. It handles robust ANOVA and T tests.
+FOCB reports that some DIN samples over the years had unusually high
+ammonium values, and that those samples were noted by the laboratory
+conducting the analyses, but not flagged as errors. We created a data
+set that dropped the top 5% of ammonium valuesd and ammonium data where
+DIN was larger than TN. Details are in the
+“FOCB\_Nutrients\_Combined.Rmd” notebook.
 
 # Load Libraries
 
@@ -151,14 +142,14 @@ sibfldnm <- 'Derived_Data'
 parent <- dirname(getwd())
 sibling <- file.path(parent,sibfldnm)
 
-dir.create(file.path(getwd(), 'figures'), showWarnings = FALSE)
+#dir.create(file.path(getwd(), 'figures'), showWarnings = FALSE)
 ```
 
 ## Load Data
 
-The data we use her has had a number of suspiciously high NH4 values
+The data we use here has had a number of suspiciously high NH4 values
 removed. See “FOCB\_Nutrients\_Combined.Rmd” for details and
-explanation/
+explanation.
 
 ``` r
 strict_data <- read_csv(file.path(sibling, 
@@ -196,6 +187,114 @@ names_df <- read_excel(file.path(sibling, fn))
 ```
 
 # Data Review
+
+## Data Distributions
+
+``` r
+ggplot(strict_data , aes(din)) +
+  geom_histogram()
+#> `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+#> Warning: Removed 419 rows containing non-finite values (stat_bin).
+```
+
+<img src="FOCB_DIN_Analysis_files/figure-gfm/din_hist-1.png" style="display: block; margin: auto;" />
+
+A log transform is “too stong” for the complete DIN data and leaves the
+data skewed the other way.
+
+``` r
+ggplot(strict_data , aes(din)) +
+  geom_histogram(aes(fill = station)) +
+  theme(legend.position = 'none') +
+  scale_x_log10()
+#> Warning: Transformation introduced infinite values in continuous x-axis
+#> `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+#> Warning: Removed 430 rows containing non-finite values (stat_bin).
+```
+
+<img src="FOCB_DIN_Analysis_files/figure-gfm/din_site_hist-1.png" style="display: block; margin: auto;" />
+
+We can partially correct by using a generalized log transform, although
+selection of the additive constant is fairly arbitrary. A value between
+0.75 and 2 appears to work fairly well.
+
+This assessment of the value of the log + k transform changes with some
+data subsets, below. many analyses have better model diagnostics on the
+log transform.
+
+``` r
+glog = function(.x, .k) log(.x + .k)
+
+ggplot(strict_data , aes(glog(din, 1.5))) +
+  geom_histogram(aes(fill = station)) +
+  theme(legend.position = 'none')
+#> `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+#> Warning: Removed 419 rows containing non-finite values (stat_bin).
+```
+
+<img src="FOCB_DIN_Analysis_files/figure-gfm/din_log_hist-1.png" style="display: block; margin: auto;" />
+
+But the log plus one transform looks pretty good for most stations.
+Things get complex with later models, on restricted data, where the log
+transform performs slightly better.
+
+``` r
+ggplot(strict_data , aes(log1p(din))) +
+  geom_density(aes(fill = station)) +
+  facet_wrap(~ station) +
+  theme_minimal() +         # restores gridlines
+  theme(legend.position = 'none')
+#> Warning: Removed 419 rows containing non-finite values (stat_density).
+```
+
+<img src="FOCB_DIN_Analysis_files/figure-gfm/facet_din_densities-1.png" style="display: block; margin: auto;" />
+A number of sites show tendencies towards bimodal distributions of DIN.
+Later analyses suggest that may reflect seasonal patterns.
+
+## Cross- Plot DIN by TN
+
+``` r
+ggplot(strict_data, aes(tn, din_N)) + 
+  geom_point(aes(fill = month), size = 2, shape = 21, alpha = 0.5) +
+  geom_abline(intercept = 0, slope = 1) +
+  #scale_fill_manual(values = cbep_colors()) +
+  coord_equal() +
+  theme_cbep(base_size = 12) +
+    ylab('DIN (mg/ l as N)') +
+    xlab('TN (mg/l)') +
+  xlim(0, 1.5)
+#> Warning: Removed 2659 rows containing missing values (geom_point).
+```
+
+<img src="FOCB_DIN_Analysis_files/figure-gfm/tn_din_plot_ammonium_strict-1.png" style="display: block; margin: auto;" />
+\# Recent Conditions Recent conditions include data from 2015 through
+2019.
+
+We remove the data for KVL84 from these analyses, because we have very
+limited local data from that site.
+
+``` r
+recent_data <- strict_data %>%
+  filter(year > 2014) %>%
+  filter(station != 'KVL84')
+```
+
+## Add Shortened Site Names
+
+The key step here is reordering by median nitrogen values. That ordering
+will need to be harmonized with TN ordering to generate final graphics.
+
+``` r
+recent_data <- recent_data %>%
+   mutate(station_name = names_df$Alt_Name[match(station,
+                                                names_df$Station_ID)]) %>%
+   mutate(station = factor(station),
+          station_name = factor(station_name)) %>%
+   mutate(station = fct_reorder(station, tn, na.rm = TRUE),
+         station_name = fct_reorder(station_name, tn, na.rm = TRUE)) %>%
+   relocate(station_name, .after = station) %>%
+   select(-tn_depth, -tn, -organic_N)
+```
 
 ## Data Prevalence
 
@@ -256,114 +355,66 @@ xtabs(~station + year, data = strict_data[! is.na(strict_data$din),])
 ```
 
 DIN data has been collected fairly consistently from a handful of sites
-over many years, and from many sites only in 2019.
-
-## Data Distributions
-
-``` r
-ggplot(strict_data , aes(din)) +
-  geom_histogram()
-#> `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-#> Warning: Removed 419 rows containing non-finite values (stat_bin).
-```
-
-<img src="FOCB_DIN_Analysis_files/figure-gfm/din_hist-1.png" style="display: block; margin: auto;" />
-
-A log transform is “too stong” for DIN and leaves us skewed the other
-way.
+over many years, and from many sites only in 2019. Samples have been
+collected at different times of year as well, complicating analyses, as
+year, station, and season / time of year are confounded.
 
 ``` r
-ggplot(strict_data , aes(din)) +
-  geom_histogram(aes(fill = station)) +
-  theme(legend.position = 'none') +
-  scale_x_log10()
-#> Warning: Transformation introduced infinite values in continuous x-axis
-#> `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-#> Warning: Removed 430 rows containing non-finite values (stat_bin).
-```
+xtabs(~ month + station, data = recent_data )%>%
+  as_tibble() %>%
+  mutate(month = factor(month, levels = month.abb)) %>%
+  filter(n>0) %>%
 
-<img src="FOCB_DIN_Analysis_files/figure-gfm/din_site_hist-1.png" style="display: block; margin: auto;" />
-
-So data is distributed somewhere between normal and lognormal in terms
-of skewness. But that skew could be due to data distributions,
-inappropriate transforms, or differences in sampling frequency among
-stations or years.
-
-We can partially correct by using a generalized log transform, although
-selection of the addative constant is fairly arbitrary.
-
-(but not this assessmsnt changes with some data subsets, below).
-
-``` r
-ggplot(strict_data , aes(log1p(din))) +
-  geom_histogram(aes(fill = station)) +
-  theme(legend.position = 'none')
-#> `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-#> Warning: Removed 419 rows containing non-finite values (stat_bin).
-```
-
-<img src="FOCB_DIN_Analysis_files/figure-gfm/din_log_hist-1.png" style="display: block; margin: auto;" />
-
-But the log plus one transform looks pretty good for most stations.
-
-``` r
-ggplot(strict_data , aes(log1p(din + 1))) +
-  geom_density(aes(fill = station)) +
-  facet_wrap(~ station) +
-  theme_minimal() +         # restores gridlines
-  theme(legend.position = 'none')
-#> Warning: Removed 419 rows containing non-finite values (stat_density).
-```
-
-<img src="FOCB_DIN_Analysis_files/figure-gfm/facet_din_densities-1.png" style="display: block; margin: auto;" />
-A number of sites show tendencies towards bimodal distributions of DIN.
-Later analyses suggest that may reflect seasonal patterns.
-
-## Cross- Plot DIN by TN
-
-``` r
-ggplot(strict_data, aes(tn, din_N)) + 
-  geom_point(aes(fill = month), size = 2, shape = 21, alpha = 0.5) +
-  geom_abline(intercept = 0, slope = 1) +
-  #scale_fill_manual(values = cbep_colors()) +
-  coord_equal() +
+  ggplot(aes(station, month, fill = sqrt(n))) +
+  geom_tile() +
   theme_cbep(base_size = 12) +
-    ylab('DIN (mg/ l as N)') +
-    xlab('TN (mg/l)')
-#> Warning: Removed 2657 rows containing missing values (geom_point).
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .25))
 ```
 
-<img src="FOCB_DIN_Analysis_files/figure-gfm/tn_din_plot_ammonium_strict-1.png" style="display: block; margin: auto;" />
-\# Recent Conditions Recent conditions include data from 2015 through
-2019.
-
-We remove the data for KVL84 from these analyses, because we have very
-limited local data from that site.
+<img src="FOCB_DIN_Analysis_files/figure-gfm/recent_data_months-1.png" style="display: block; margin: auto;" />
 
 ``` r
-recent_data <- strict_data %>%
-  filter(year > 2014) %>%
-  filter(station != 'KVL84')
+xtabs(~ year + station, data = recent_data) %>%
+  as_tibble() %>% 
+  filter(n>0) %>%
+
+  ggplot(aes(station, year, fill = sqrt(n))) +
+  geom_tile() +
+  theme_cbep(base_size = 12) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .25))
 ```
 
-## Add Shortened Site Names
-
-The key step here is reordering by median nitrogen values. That ordering
-will need to be harmonized with TN ordering to generate final graphics.
+<img src="FOCB_DIN_Analysis_files/figure-gfm/recent_data_years-1.png" style="display: block; margin: auto;" />
 
 ``` r
-recent_data <- recent_data %>%
-   mutate(station_name = names_df$Alt_Name[match(station,
-                                                names_df$Station_ID)]) %>%
-   mutate(station = factor(station),
-          station_name = factor(station_name)) %>%
-   mutate(station = fct_reorder(station, tn, na.rm = TRUE),
-         station_name = fct_reorder(station_name, tn, na.rm = TRUE)) %>%
-   relocate(station_name, .after = station) %>%
-   select(-tn_depth, -tn, -organic_N)
+xtabs(~ year + month, data = recent_data) %>%
+  as_tibble() %>% 
+  mutate(month = factor(month, levels = month.abb))  %>%
+  filter(n>0) %>%
+
+  ggplot(aes(month, year, fill = sqrt(n))) +
+  geom_tile() +
+  theme_cbep(base_size = 12) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .25))
 ```
 
-# Extract Recent Results
+<img src="FOCB_DIN_Analysis_files/figure-gfm/recent_data_times-1.png" style="display: block; margin: auto;" />
+
+We note that several stations have fewer than ten DIN samples over the
+recent period, and sampling has focused on a smaller number of sites, a
+smaller number of months, or both.
+
+Only one site (KVL84, Knightville Landing, in South Portland) has fewer
+than five DIN values. It and was dropped, above, for lack of recent
+data.
+
+With the relatively low sample sizes and uneven sampling histories for
+most sites, complex models may perform poorly. Interactions with year,
+time of year, and location, in particular, will lead to many empty cells
+in the implicit model design. Those may lead to a variety of model
+artifacts.
+
+## Extract Recent Results
 
 This is the simplest analysis, with no hierarchical modeling. We drop
 the extreme TN values, ass we do for most analyses coming up.
@@ -385,45 +436,12 @@ recent_results <- recent_data %>%
   relocate(station_name, .after = station)
 ```
 
-## Sample Frequencies
-
-``` r
-recent_results %>%
-  select(station, contains('_N_n') )
-#> # A tibble: 23 x 4
-#>    station din_N_n nox_N_n nh4_N_n
-#>    <fct>     <int>   <int>   <int>
-#>  1 CMS1         10      17      10
-#>  2 OBY35         7      12       7
-#>  3 PYC43         8      14       8
-#>  4 P7CBI        26      40      27
-#>  5 P5BSD        32      42      32
-#>  6 PH1           9      16       9
-#>  7 HR1          11      18      11
-#>  8 BMR02         8      15       8
-#>  9 HR3           6      13       6
-#> 10 PH2           9      15       9
-#> # ... with 13 more rows
-```
-
-We note that several stations have fewer than ten DIN samples over that
-period of time. Only one site (KVL84, Knightville Landing, in South
-Portland) has fewer than five DIN values. It and was dropped, above, for
-lack of recent data.
-
-TN values are somewhat more abundant, with only a single site with fewer
-than ten TN samples.
-
-With the relatively low sample sizes for most sites, complex models may
-perform poorly. Interactions with time of year and year, in particular,
-will lead to many empty cells in the implicit model design.
-
 # Models
 
 We want to look at recent conditions, taking into account as best we can
 possible covariates, including year and time of year. Our goal is to
-extract marginal means by station for the recent data, and evaluate
-trends for the long-term data.
+extract means, medians, or marginal means by station for the recent data
+to plot on graphics and GIS.
 
 # Recent Data
 
@@ -480,8 +498,9 @@ par(oldpar)
 ```
 
 We have a few values that are fairly badly underestimated (large
-negative residuals), but this is not dreadful. Residuals are somewhat
-heavy tailed.
+negative residuals), but diagnostics are not dreadful. Residuals are
+somewhat heavy tailed. There is some evidence that a plain log transform
+has over corrected the skew in the original data.
 
 ``` r
 recent_data[c(149, 430, 501),]
@@ -496,7 +515,8 @@ recent_data[c(149, 430, 501),]
 
 The poorly fit samples are all from 2015 and 2016, warm season. It is
 possible the fit for those years is affected by the prevalence of winter
-samples, with the unbalanced sampling history biasing estimates.
+samples, with the unbalanced sampling history biasing estimates for the
+entire year.
 
 ### Marginal Means
 
@@ -504,12 +524,20 @@ samples, with the unbalanced sampling history biasing estimates.
 din_emms_lm <- emmeans(din_lm, 'station', type = 'response')
 din_emms_lm_jul <- emmeans(din_lm, 'station', type = 'response', 
                        at = list(month = 'Jul'))
-
-plot(din_emms_lm) + coord_flip() + 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.25))
 ```
 
-<img src="FOCB_DIN_Analysis_files/figure-gfm/extract_lm_marginal_means-1.png" style="display: block; margin: auto;" />
+Unfortunately, the relationship to observed means is only so-so. Again,
+this probably reflects unbalanced data, leading to large “corrections”
+in some places where available data are biased.
+
+``` r
+plot(din_emms_lm) + coord_flip() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.25)) +
+  geom_point(data = recent_results, aes(y = as.numeric(station), x = din_N_md),
+             color = 'red')
+```
+
+<img src="FOCB_DIN_Analysis_files/figure-gfm/unnamed-chunk-2-1.png" style="display: block; margin: auto;" />
 
 ### Compare to Observed Means
 
@@ -637,14 +665,14 @@ gam.check(din_gam)
     #> indicate that k is too low, especially if edf is close to k'.
     #> 
     #>            k'  edf k-index p-value  
-    #> s(doy)   3.00 2.79    0.91    0.02 *
+    #> s(doy)   3.00 2.79    0.91   0.035 *
     #> s(yearf) 4.00 2.78      NA      NA  
     #> ---
     #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     par(oldpar)
 
-Those diagnostics are not too bad, with the exception of large negative
-residuals again.
+Those diagnostics are not too bad, with the exception of a few large
+negative residuals again.
 
 #### GAM Marginal Means
 
@@ -688,7 +716,7 @@ ggplot(compare, aes(din_N_mn, response)) +
 
 <img src="FOCB_DIN_Analysis_files/figure-gfm/compare_gam_observed-1.png" style="display: block; margin: auto;" />
 
-This does better than the linear model, but only slightly
+This does better than the linear model, but only slightly.
 
 ## Sample Sizes are Wildly Unequal
 
@@ -704,7 +732,7 @@ xtabs(~ year + month, data = recent_data , subset = ! is.na(din))
 #>   2019   0   0   0   0  21  21  39  23  45  18   0   0
 ```
 
-So, seasonal trnds outside of summer rest on just a handful of
+So, seasonal trends outside of summer rest on just a handful of
 observations in each of 2015 and 2016.
 
 ``` r
@@ -753,11 +781,50 @@ Data coverage in 2019 is fairly consistent. Coverage is sparse, but
 consistent across stations (but not months) in 2017 as well.
 
 We restrict further attention to just 2019, as that data will not be
-affected by the uneven sampling history to the same extent.
+affected by the uneven sampling history to the same extent. Later we
+will look at just the warmer months of hte year, when seasonal variation
+is smaller.
+
+``` r
+xtabs(~ station + month, data = recent_data, subset = recent_data$year == 2019)
+#>        month
+#> station Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec
+#>   CMS1    0   0   0   0   2   1   2   1   2   1   0   0
+#>   OBY35   0   0   0   0   1   1   2   1   2   0   0   0
+#>   PYC43   0   0   0   0   1   1   2   1   2   0   0   0
+#>   P7CBI   0   0   0   0   2   1   2   1   2   1   0   0
+#>   P5BSD   0   0   0   0   2   1   2   1   2   1   0   0
+#>   PH1     0   0   0   0   2   1   2   1   2   1   0   0
+#>   HR1     0   0   0   0   2   1   2   1   2   1   0   0
+#>   BMR02   0   0   0   0   1   1   2   1   2   1   0   0
+#>   HR3     0   0   0   0   0   0   0   1   2   0   0   0
+#>   PH2     0   0   0   0   2   1   2   1   2   1   0   0
+#>   MPL86   0   0   0   0   2   1   2   1   2   1   0   0
+#>   HR2     0   0   0   0   0   0   0   1   2   0   0   0
+#>   P6FGG   0   0   0   0   2   1   2   1   2   1   0   0
+#>   PH3     0   0   0   0   2   1   2   1   2   1   0   0
+#>   SMT50   0   0   0   0   2   1   2   1   2   1   0   0
+#>   EEB18   0   0   0   0   2   1   2   1   2   1   0   0
+#>   PKT42   0   0   0   0   2   1   2   1   2   1   0   0
+#>   RRC46   0   0   0   0   2   1   2   1   2   1   0   0
+#>   HR4     0   0   0   0   2   1   2   1   2   1   0   0
+#>   PRV70   0   0   0   0   2   1   2   1   2   0   0   0
+#>   NMM79   0   0   0   0   2   1   2   1   2   1   0   0
+#>   RRY47   0   0   0   0   2   1   2   1   2   1   0   0
+#>   STR54   0   0   0   0   2   1   2   1   2   1   0   0
+```
+
+So sampling is not completely equal and we do have two sites in the
+Haraseeket with poor data coverage, and a few other sites missing
+October data. In other analyses, we noted that October often has higher
+DIN values than other months, so we drop it from the analysis, since the
+eneven samples may affect results.
 
 ``` r
 yr_2019_data <- recent_data %>%
   filter(year == 2019)  %>%
+  filter(month !='Oct') %>%
+  filter(! is.na(din)) %>%
   select(station, station_name, dt, month, doy, din_N)
 ```
 
@@ -766,7 +833,6 @@ ggplot(yr_2019_data, aes(din_N)) +
   geom_histogram() +
   scale_x_continuous(trans = 'log')
 #> `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-#> Warning: Removed 22 rows containing non-finite values (stat_bin).
 ```
 
 <img src="FOCB_DIN_Analysis_files/figure-gfm/hist_2019-1.png" style="display: block; margin: auto;" />
@@ -775,7 +841,6 @@ ggplot(yr_2019_data, aes(din_N)) +
 ggplot(yr_2019_data, aes(din_N, station_name)) +
   geom_point(aes(color = month)) +
   scale_x_log10()
-#> Warning: Removed 22 rows containing missing values (geom_point).
 ```
 
 <img src="FOCB_DIN_Analysis_files/figure-gfm/jitter_plot_2019-1.png" style="display: block; margin: auto;" />
@@ -808,9 +873,9 @@ anova(din_lm_2019_draft)
 #> 
 #> Response: log(din_N)
 #>               Df  Sum Sq Mean Sq F value    Pr(>F)    
-#> station       22 136.993  6.2270 17.0635 5.400e-14 ***
-#> month          5  24.702  4.9403 13.5378 9.567e-08 ***
-#> station:month 99  43.575  0.4402  1.2061    0.2555    
+#> station       22 125.312  5.6960  15.608 2.468e-13 ***
+#> month          4  18.602  4.6506  12.744 8.898e-07 ***
+#> station:month 82  37.317  0.4551   1.247    0.2225    
 #> Residuals     40  14.597  0.3649                      
 #> ---
 #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
@@ -823,19 +888,29 @@ anova(din_lm_2019)
 #> 
 #> Response: log(din_N)
 #>            Df  Sum Sq Mean Sq F value    Pr(>F)    
-#> station    22 136.993  6.2270  14.879 < 2.2e-16 ***
-#> month       5  24.702  4.9403  11.805 1.591e-09 ***
-#> Residuals 139  58.172  0.4185                      
+#> station    22 125.312  5.6960  13.386 < 2.2e-16 ***
+#> month       4  18.602  4.6506  10.929 1.316e-07 ***
+#> Residuals 122  51.914  0.4255                      
 #> ---
 #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ```
 
-#### Marginal Means
+``` r
+plot(din_emms_lm) + coord_flip() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.25)) +
+  geom_point(data = recent_results, aes(y = as.numeric(station), x = din_N_md),
+             color = 'red')
+```
+
+<img src="FOCB_DIN_Analysis_files/figure-gfm/unnamed-chunk-4-1.png" style="display: block; margin: auto;" />
+\#\#\#\# Marginal Means
 
 ``` r
 din_emms_lm_2019 <- emmeans(din_lm_2019, 'station', type = 'response')
 plot(din_emms_lm_2019) + coord_flip()+ 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.25))
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.25)) +
+  geom_point(data = results_2019, aes(y = station, x = din_N_md),
+             color = 'red')
 ```
 
 <img src="FOCB_DIN_Analysis_files/figure-gfm/marginals_2019-1.png" style="display: block; margin: auto;" />
@@ -857,8 +932,8 @@ anova(din_lm_2019_red)
 #> 
 #> Response: log(din_N)
 #>            Df  Sum Sq Mean Sq F value    Pr(>F)    
-#> station    22 136.993  6.2270   10.82 < 2.2e-16 ***
-#> Residuals 144  82.874  0.5755                      
+#> station    22 125.312  5.6960  10.178 < 2.2e-16 ***
+#> Residuals 126  70.516  0.5597                      
 #> ---
 #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ```
@@ -868,17 +943,18 @@ anova(din_lm_2019_red)
 ``` r
 din_emms_lm_2019_red <- emmeans(din_lm_2019_red, 'station', type = 'response')
 plot(din_emms_lm_2019_red) + coord_flip() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.25))
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.25))  +
+  geom_point(data = results_2019, aes(y = station, x = din_N_md),
+             color = 'red')
 ```
 
-<img src="FOCB_DIN_Analysis_files/figure-gfm/red_2018_marginals-1.png" style="display: block; margin: auto;" />
-Qualitatively nearly indistinguishable, although stnadard errors are
-likely larger.
+<img src="FOCB_DIN_Analysis_files/figure-gfm/red_2019_marginals-1.png" style="display: block; margin: auto;" />
+Qualitatively indistinguishable results….
 
 ### Robust Linear Model
 
-Thee `rlm()` function from `MASS` implements robust model fitting using
-M estimators. These are estimators that do not use least squares as a
+The `rlm()` function from `MASS` implements robust model fitting using M
+estimators. These are estimators that do not use least squares as a
 criterion for model fit. Instead, they use other symmetric functions to
 quantify the relative importance of the deviation of each observation
 from model predictions. To achieve “robust” qualities, these functions
@@ -931,12 +1007,12 @@ anova(din_gam_2019)
 #> log(din_N) ~ station + s(doy, bs = "cs", k = 6)
 #> 
 #> Parametric Terms:
-#>         df     F p-value
-#> station 22 14.41  <2e-16
+#>         df    F p-value
+#> station 22 13.1  <2e-16
 #> 
 #> Approximate significance of smooth terms:
-#>          edf Ref.df     F p-value
-#> s(doy) 4.575  5.000 10.32  <2e-16
+#>          edf Ref.df     F  p-value
+#> s(doy) 3.992  5.000 7.549 7.07e-07
 ```
 
 ``` r
@@ -964,28 +1040,33 @@ gam.check(din_gam)
     #> indicate that k is too low, especially if edf is close to k'.
     #> 
     #>            k'  edf k-index p-value  
-    #> s(doy)   3.00 2.79    0.91   0.025 *
+    #> s(doy)   3.00 2.79    0.91   0.035 *
     #> s(yearf) 4.00 2.78      NA      NA  
     #> ---
     #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     par(oldpar)
 
-Those diagnostics are not too bad, with the exception of large negative
-residuals again.
+Those diagnostics are not too bad, with the exception of a few large
+negative residuals again.
 
 #### GAM Marginal Means
 
 ``` r
 din_emms_gam_2019 <- emmeans(din_gam_2019, 'station', type = 'response')
 plot(din_emms_gam_2019) + coord_flip() + 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.25))
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.25)) +
+  geom_point(data = results_2019, aes(y = station, x = din_N_md),
+             color = 'red')
 ```
 
 <img src="FOCB_DIN_Analysis_files/figure-gfm/gam_2019_marginals-1.png" style="display: block; margin: auto;" />
 
 ``` r
-din_emms_gam_2019 <- as_tibble(din_emms_gam_2019)
+din_emms_gam_2019 <- as_tibble(din_emms_gam_2019) 
 ```
+
+Again, qualitatively similar results, but this models appears to
+slightly overestimate observed means fairly consistently.
 
 ### Compare Model Results – Does Model Selection Matter?
 
@@ -1006,7 +1087,7 @@ ggplot(compare, aes(din_N_mn, response)) +
                      xmax = din_N_mn + 2 * din_N_sd/sqrt(din_N_n))) +
   geom_linerange(aes(ymin = lower.CL, ymax = upper.CL)) +
   xlab('Observed ') +
-  ylab('Robust Linear Model') +
+  ylab('Linear Model') +
   coord_equal() +
   scale_x_log10()+
   scale_y_log10()
@@ -1014,8 +1095,6 @@ ggplot(compare, aes(din_N_mn, response)) +
 
 <img src="FOCB_DIN_Analysis_files/figure-gfm/compare_2019_lm-1.png" style="display: block; margin: auto;" />
 The log linear model generally fits means slightly lower than observed.
-This is what is expected as we are effectively fitting geometric means
-instead of arithmetic means.
 
 ##### Robust Log Linear Model
 
@@ -1065,9 +1144,10 @@ ggplot(compare, aes(din_N_mn, response)) +
 <img src="FOCB_DIN_Analysis_files/figure-gfm/compare_2019_gam-1.png" style="display: block; margin: auto;" />
 
 The GAM model provides adjusted estimates that generally lie close to
-the observed means. These estimates are effectively adjusted for
-different sampling histories. Note that error bars are higher than for
-the straight means.
+the observed means. Values are slightly higher than the observed means,
+reflecting different time of year adjustments from the linear model.
+These estimates are effectively adjusted for different sampling
+histories. Note that error bars are higher than for the observed means.
 
 #### Compare Log Linear and Robust Log Linear Models
 
@@ -1094,16 +1174,424 @@ So, results are qualitatively similar. There is no strong reason to
 prefer the robust estimates to the linear model estimates where
 qualitative results are similar and model diagnostics are fairly good.
 
-### DIN Recent Condition Conclusions
+# Restricted Data – Core Months
 
-Restricting attention to 2019 makes sense. There appears to be little
-advantage to robust models. Even so, there are several approaches
-possible:  
+Another way to focus our analysis is to focus only on the “warmer”
+months, which sampled more consistently. While most sites were sampled
+in October, a few were not, so we focus on May through September.
+
+``` r
+core_months_data <- recent_data %>%
+  filter(month %in% month.abb[5:9])  %>%
+  filter(! is.na(din)) %>%
+  select(station, station_name, dt, year, yearf, month, doy, din_N)
+```
+
+``` r
+xtabs(~ station + month, data = core_months_data)
+#>        month
+#> station Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec
+#>   CMS1    0   0   0   0   1   1   2   1   2   0   0   0
+#>   OBY35   0   0   0   0   1   1   2   1   2   0   0   0
+#>   PYC43   0   0   0   0   1   1   2   1   2   0   0   0
+#>   P7CBI   0   0   0   0   3   3   2   3   3   0   0   0
+#>   P5BSD   0   0   0   0   2   3   3   4   5   0   0   0
+#>   PH1     0   0   0   0   1   1   2   2   2   0   0   0
+#>   HR1     0   0   0   0   1   1   2   2   4   0   0   0
+#>   BMR02   0   0   0   0   1   1   2   1   2   0   0   0
+#>   HR3     0   0   0   0   0   0   0   3   3   0   0   0
+#>   PH2     0   0   0   0   1   1   2   2   2   0   0   0
+#>   MPL86   0   0   0   0   1   1   2   1   2   0   0   0
+#>   HR2     0   0   0   0   0   0   0   3   4   0   0   0
+#>   P6FGG   0   0   0   0   2   3   4   4   5   0   0   0
+#>   PH3     0   0   0   0   1   1   1   2   2   0   0   0
+#>   SMT50   0   0   0   0   3  17  14   8   8   0   0   0
+#>   EEB18   0   0   0   0   1   1   3   1   2   0   0   0
+#>   PKT42   0   0   0   0   1   1   3   2   3   0   0   0
+#>   RRC46   0   0   0   0   1   1   2   1   2   0   0   0
+#>   HR4     0   0   0   0   1   1   1   1   2   0   0   0
+#>   PRV70   0   0   0   0   1   1   2   1   2   0   0   0
+#>   NMM79   0   0   0   0   1   1   2   1   1   0   0   0
+#>   RRY47   0   0   0   0   1   1   3   1   2   0   0   0
+#>   STR54   0   0   0   0   1   1   2   1   2   0   0   0
+```
+
+We see a few little sampled sites, especially in the Haraseeket, but
+otherwise, representation is fairly uniform.
+
+``` r
+ggplot(core_months_data, aes(din_N)) +
+  geom_histogram() +
+  scale_x_continuous(trans = 'log10')
+#> `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+```
+
+<img src="FOCB_DIN_Analysis_files/figure-gfm/hist_core_months-1.png" style="display: block; margin: auto;" />
+
+``` r
+ggplot(core_months_data, aes(din_N, station_name)) +
+  geom_point(aes(color = yearf), alpha = 0.25) +
+  scale_x_log10()
+```
+
+<img src="FOCB_DIN_Analysis_files/figure-gfm/jitter_plot_core_months-1.png" style="display: block; margin: auto;" />
+
+We have data only from 2019 from many sites, so this analysis has many
+“empty cells” too, if we model year to year variation.
+
+### Calculate Descriptive Statistics
+
+``` r
+results_core_months <- core_months_data %>%
+  group_by(station) %>%
+  summarize(across(din_N, c(mn = ~ mean(.x, na.rm = TRUE),
+                                  sd = ~ sd(.x, na.rm = TRUE), 
+                                  n = ~sum(! is.na(.x)),
+                                  md = ~ median(.x, na.rm = TRUE),
+                                  iqr = ~ IQR(.x, na.rm = TRUE),
+                                  p90 = ~ quantile(.x, .9, na.rm = TRUE),
+                                  gm = ~ exp(mean(log(.x), na.rm = TRUE))))) %>%
+  mutate(station_name = names_df$Alt_Name[match(station,
+                                                names_df$Station_ID)]) %>%
+  mutate(station = fct_reorder(factor(station), din_N_md),
+         station_name = fct_reorder(factor(station_name), din_N_md)) %>%
+  relocate(station_name, .after = station)
+```
+
+### Linear Model
+
+``` r
+din_lm_core_months_draft <- lm(log(din_N) ~ station *  month + year, 
+                               data = core_months_data)
+anova(din_lm_core_months_draft)
+#> Analysis of Variance Table
+#> 
+#> Response: log(din_N)
+#>                Df  Sum Sq Mean Sq F value    Pr(>F)    
+#> station        22 140.759  6.3981  5.8220 4.130e-11 ***
+#> month           4  18.691  4.6729  4.2521  0.002889 ** 
+#> year            1  22.121 22.1206 20.1287 1.584e-05 ***
+#> station:month  82  53.603  0.6537  0.5948  0.994098    
+#> Residuals     129 141.766  1.0990                      
+#> ---
+#> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+``` r
+din_lm_core_months <- lm(log(din_N) ~ station + month + year , data = core_months_data)
+anova(din_lm_core_months)
+#> Analysis of Variance Table
+#> 
+#> Response: log(din_N)
+#>            Df  Sum Sq Mean Sq F value    Pr(>F)    
+#> station    22 140.759  6.3981  6.9100 2.043e-15 ***
+#> month       4  18.691  4.6729  5.0467  0.000665 ***
+#> year        1  22.121 22.1206 23.8904 2.017e-06 ***
+#> Residuals 211 195.369  0.9259                      
+#> ---
+#> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+``` r
+oldpar <- par(mfrow = c(2,2))
+plot(din_lm_core_months)
+```
+
+<img src="FOCB_DIN_Analysis_files/figure-gfm/core_lm_diagnostics-1.png" style="display: block; margin: auto;" />
+
+``` r
+par(oldpar)
+```
+
+The log transform is slightly too strong for these data, but most
+alternatives are no better. This model is adequate for our purposes.
+
+#### Marginal Means
+
+``` r
+din_emms_lm_core_months <- emmeans(din_lm_core_months, 'station', type = 'response')
+plot(din_emms_lm_core_months) + coord_flip()+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.25))  +
+  geom_point(data = results_core_months, aes(y = as.numeric(station), x = din_N_md),
+             color = 'red')
+```
+
+<img src="FOCB_DIN_Analysis_files/figure-gfm/marginals_core-1.png" style="display: block; margin: auto;" />
+
+``` r
+din_emms_lm_core_months_months <- emmeans(din_lm_core_months, 'month', 
+                                          type = 'response')
+plot(din_emms_lm_core_months_months) + coord_flip()+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.25))
+```
+
+<img src="FOCB_DIN_Analysis_files/figure-gfm/marginals_core_months-1.png" style="display: block; margin: auto;" />
+
+### Simplified Linear Model
+
+``` r
+din_lm_core_months_red <- lm(log(din_N) ~ station, data = core_months_data)
+anova(din_lm_core_months_red)
+#> Analysis of Variance Table
+#> 
+#> Response: log(din_N)
+#>            Df Sum Sq Mean Sq F value    Pr(>F)    
+#> station    22 140.76  6.3981  5.8514 7.162e-13 ***
+#> Residuals 216 236.18  1.0934                      
+#> ---
+#> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+#### Marginal Means
+
+``` r
+din_emms_lm_core_months_red <- emmeans(din_lm_core_months_red, 'station', type = 'response')
+plot(din_emms_lm_core_months_red) + coord_flip() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.25))  +
+  geom_point(data = results_core_months, aes(y = as.numeric(station), x = din_N_md),
+             color = 'red') +
+  geom_point(data = results_core_months, aes(y = as.numeric(station), x = din_N_gm),
+             color = 'blue')
+```
+
+<img src="FOCB_DIN_Analysis_files/figure-gfm/red_core_marginals-1.png" style="display: block; margin: auto;" />
+
+Many of the differences from observed means are retained by even the
+simplest linear model. Results are not appreciably closer to the
+geometric means.
+
+With no covariates, why is this model not just fitting each station
+perfectly? Since there is a parameter for each station, means (or here,
+geometric means) should match…
+
+### Robust Linear Model
+
+Robust linear models, as implemented via `rlm()` from the `MASS` package
+do not accept models not of full rank, which is proven a bit of a
+problem for these uneven data sets. We can not fit a station + month
+model.
+
+``` r
+din_rlm_core_months_FAILS <- rlm(log(din_N) ~ station + month, 
+                     na.action = na.omit,
+                     data = core_months_data)
+#> Error in rlm.default(x, y, weights, method = method, wt.method = wt.method, : 'x' is singular: singular fits are not implemented in 'rlm'
+```
+
+``` r
+din_rlm_core_months <- rlm(log(din_N) ~ station, 
+                     na.action = na.omit,
+                     data = core_months_data)
+```
+
+#### Marginal Means
+
+``` r
+din_emms_lm_core_months <- as_tibble(emmeans(din_lm_core_months, 
+                                      'station', type = 'response'))
+din_emms_rlm_core_months <- as_tibble(emmeans(din_rlm_core_months, 
+                                      'station', type = 'response'))
+```
+
+## GAM model
+
+We can use a GAM model to look at seasonal patterns within this one
+year, but this also may be overfitting available data. We don’t fit a
+cyclic smoother because our data covers only a small portion of the
+year.
+
+``` r
+din_gam_core_months <- gam(log(din_N) ~ station +  s(doy, bs = 'cs', k = 6), 
+               data = core_months_data)
+anova(din_gam_core_months)
+#> 
+#> Family: gaussian 
+#> Link function: identity 
+#> 
+#> Formula:
+#> log(din_N) ~ station + s(doy, bs = "cs", k = 6)
+#> 
+#> Parametric Terms:
+#>         df     F  p-value
+#> station 22 5.756 1.41e-12
+#> 
+#> Approximate significance of smooth terms:
+#>          edf Ref.df     F p-value
+#> s(doy) 3.636  5.000 1.932  0.0306
+```
+
+``` r
+plot(din_gam_core_months)
+```
+
+<img src="FOCB_DIN_Analysis_files/figure-gfm/view_gam_core_months-1.png" style="display: block; margin: auto;" />
+
+``` r
+oldpar <- par(mfrow = c(2,2))
+gam.check(din_gam)
+```
+
+<img src="FOCB_DIN_Analysis_files/figure-gfm/gam_core_months_diagnostics-1.png" style="display: block; margin: auto;" />
+
+    #> 
+    #> Method: GCV   Optimizer: magic
+    #> Smoothing parameter selection converged after 12 iterations.
+    #> The RMS GCV score gradient at convergence was 6.894554e-07 .
+    #> The Hessian was positive definite.
+    #> Model rank =  30 / 30 
+    #> 
+    #> Basis dimension (k) checking results. Low p-value (k-index<1) may
+    #> indicate that k is too low, especially if edf is close to k'.
+    #> 
+    #>            k'  edf k-index p-value  
+    #> s(doy)   3.00 2.79    0.91   0.035 *
+    #> s(yearf) 4.00 2.78      NA      NA  
+    #> ---
+    #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    par(oldpar)
+
+Those diagnostics are not too bad, although the log transform is a bit
+strong.
+
+#### GAM Marginal Means
+
+``` r
+din_emms_gam_core_months <- emmeans(din_gam_core_months, 'station', type = 'response')
+plot(din_emms_gam_core_months) + coord_flip() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.25))
+```
+
+<img src="FOCB_DIN_Analysis_files/figure-gfm/gam_core_months_marginals-1.png" style="display: block; margin: auto;" />
+
+``` r
+din_emms_gam_core_months <- as_tibble(din_emms_gam_core_months)
+```
+
+### Compare Model Results – Does Model Selection Matter?
+
+#### Compare Models to Observed Means
+
+##### Log Linear Model
+
+``` r
+compare <- results_core_months %>%
+  select(station, station_name, contains('tn'), contains('din_N')) %>%
+  full_join(din_emms_lm_core_months, by = 'station', suffix = c('.data', '.lm'), 
+            copy = TRUE)
+
+ggplot(compare, aes(din_N_mn, response)) +
+  geom_abline(slope = 1, intercept = 0) + 
+  geom_point(size = 3, color = 'blue') +
+  geom_linerange(aes(xmin = din_N_mn - 2 * din_N_sd/sqrt(din_N_n), 
+                     xmax = din_N_mn + 2 * din_N_sd/sqrt(din_N_n))) +
+  geom_linerange(aes(ymin = lower.CL, ymax = upper.CL)) +
+  xlab('Observed ') +
+  ylab('Robust Linear Model') +
+  coord_equal() +
+  scale_x_log10()+
+  scale_y_log10()
+#> Warning in self$trans$transform(x): NaNs produced
+#> Warning: Transformation introduced infinite values in continuous x-axis
+#> Warning: Removed 1 rows containing missing values (geom_segment).
+```
+
+<img src="FOCB_DIN_Analysis_files/figure-gfm/compare_core_months_lm-1.png" style="display: block; margin: auto;" />
+The log linear model generally fits means slightly lower than observed.
+This is what is expected as we are effectively fitting geometric means
+instead of arithmetic means.
+
+##### Robust Log Linear Model
+
+``` r
+compare <- results_core_months %>%
+  select(station, station_name, contains('tn'), contains('din_N')) %>%
+  full_join(din_emms_rlm_core_months, by = 'station', suffix = c('.data', '.lm'), 
+            copy = TRUE)
+
+ggplot(compare, aes(din_N_mn, response)) +
+  geom_abline(slope = 1, intercept = 0) + 
+  geom_point(size = 3, color = 'blue') +
+  geom_linerange(aes(xmin = din_N_mn - 2 * din_N_sd/sqrt(din_N_n), 
+                     xmax = din_N_mn + 2 * din_N_sd/sqrt(din_N_n))) +
+  geom_linerange(aes(ymin = asymp.LCL, ymax = asymp.UCL)) +
+  xlab('Observed ') +
+  ylab('Robust Linear Model') +
+  coord_equal() +
+  scale_x_log10()+
+  scale_y_log10()
+#> Warning in self$trans$transform(x): NaNs produced
+#> Warning: Transformation introduced infinite values in continuous x-axis
+#> Warning: Removed 1 rows containing missing values (geom_segment).
+```
+
+<img src="FOCB_DIN_Analysis_files/figure-gfm/compare_core_months_rlm-1.png" style="display: block; margin: auto;" />
+Results of the robust model are very similar.
+
+##### GAM Model
+
+``` r
+compare <- results_core_months %>%
+  select(station, station_name, contains('tn'), contains('din_N')) %>%
+  full_join(din_emms_gam_core_months, by = 'station', suffix = c('.data', '.lm'), 
+            copy = TRUE)
+
+ggplot(compare, aes(din_N_mn, response)) +
+  geom_abline(slope = 1, intercept = 0) + 
+  geom_point(size = 3, color = 'blue') +
+  geom_linerange(aes(xmin = din_N_mn - 2 * din_N_sd/sqrt(din_N_n), 
+                     xmax = din_N_mn + 2 * din_N_sd/sqrt(din_N_n))) +
+  geom_linerange(aes(ymin = lower.CL, ymax = upper.CL)) +
+  xlab('Observed ') +
+  ylab('GAM Model') +
+  coord_equal() +
+  scale_x_log10()+
+  scale_y_log10()
+#> Warning in self$trans$transform(x): NaNs produced
+#> Warning: Transformation introduced infinite values in continuous x-axis
+#> Warning: Removed 1 rows containing missing values (geom_segment).
+```
+
+<img src="FOCB_DIN_Analysis_files/figure-gfm/compare_core_months_gam-1.png" style="display: block; margin: auto;" />
+
+The GAM model provides adjusted estimates that generally lie close to
+the observed means. These estimates are effectively adjusted for
+different sampling histories. Note that error bars are higher than for
+the straight means.
+
+#### Compare Log Linear and Robust Log Linear Models
+
+We can show that more clearly by plotting the predictions of the two
+models against one another.
+
+``` r
+compare <- as_tibble(din_emms_lm_core_months) %>%
+  full_join(din_emms_rlm_core_months, by = 'station', suffix = c('.lm', '.rlm'))
+ggplot(compare, aes(response.lm, response.rlm)) +
+  geom_abline(slope = 1, intercept = 0) + 
+  geom_point(size = 3, color = 'blue') +
+  geom_linerange(aes(xmin = lower.CL, xmax = upper.CL)) +
+  geom_linerange(aes(ymin = asymp.LCL, ymax = asymp.UCL)) +
+  xlab('Linear Model') +
+  ylab('Robust Linear Model') +
+  coord_equal() +
+  scale_x_log10()+
+  scale_y_log10()
+```
+
+<img src="FOCB_DIN_Analysis_files/figure-gfm/compare_core_months_models-1.png" style="display: block; margin: auto;" />
+
+# DIN Recent Condition Conclusions
+
+Restricting attention to 2019 makes sense. An alternative restriction to
+ore months left many stations with only data from 2019 anyway.
+
+There appears to be little advantage to robust models. Even so, there
+are several approaches possible:  
 1. Just use observed means / medians.  
 2. Use fitted means from the simplest linear models. This effectively
 fits geometric means, not arithmetic means, and pools error estimates.  
-3. Use Marginal Means from the GAM model - -these are effectively
-adjusted for different sampling histories.
+3. Use Marginal Means from the GAM model – these are effectively
+adjusted for different sampling histories, especially time of year.
 
 # Trend Analysis
 
@@ -1135,6 +1623,7 @@ trend_sites
 ``` r
 trend_data <- strict_data %>%
   filter(station %in% trend_sites) %>%
+  filter(! is.na(din_N)) %>%
    mutate(station_name = names_df$Alt_Name[match(station,
                                                 names_df$Station_ID)]) %>%
    mutate(station = factor(station),
@@ -1163,8 +1652,9 @@ xtabs(~ month + station, data = trend_data )%>%
 So we have few winter samples from four of these sites, suggesting we
 may want to look at a more limited subset of the data to avoid
 introducing bias into our models. The core data is from April to
-October. We could focus on sites with more complete records, or focus on
-months with more sites.
+October, with fairly consistent level of effort across sites. We could
+focus on sites with more complete records, or focus on months with more
+sites.
 
 ``` r
 xtabs(~ year + station, data = trend_data) %>%
@@ -1178,8 +1668,9 @@ xtabs(~ year + station, data = trend_data) %>%
 ```
 
 <img src="FOCB_DIN_Analysis_files/figure-gfm/trend_data_years-1.png" style="display: block; margin: auto;" />
-The same station have more complete records, suggesting we may also want
-to the define five core trend stations where data is more complete.
+The same station have more complete records by year, suggesting we may
+also want to the define five core trend stations where data is more
+complete.
 
 ``` r
 xtabs(~ year + month, data = trend_data) %>%
@@ -1231,13 +1722,11 @@ core_sites_data <- trend_data %>%
 ggplot(core_sites_data, aes(year, din_N,)) +
   geom_jitter(aes( color = station_name), alpha = 0.5) + 
   stat_summary(fun = mean, geom = 'line', lwd = 1) +
-  scale_y_continuous(trans = 'log1p', breaks = c(0,5,10,30)) +
+  #scale_y_continuous(trans = 'log') +
   facet_wrap(~station_name, nrow = 5) +
   scale_color_manual(values = cbep_colors()) +
   theme_cbep(base_size = 12) +
   theme(legend.position = 'None')
-#> Warning: Removed 151 rows containing non-finite values (stat_summary).
-#> Warning: Removed 151 rows containing missing values (geom_point).
 ```
 
 <img src="FOCB_DIN_Analysis_files/figure-gfm/core_sites_jitter_plot_by_yr-1.png" style="display: block; margin: auto;" />
@@ -1272,14 +1761,13 @@ ggplot(core_sites_data) +
             mapping = aes(x = dt, y = ann_mn_din_N), 
             lwd = 1,
             color = cbep_colors()[3]) +
-  scale_y_continuous(trans = 'log1p') +
+  #scale_y_continuous(trans = 'log') +
   facet_wrap(~station_name, nrow = 5) +
   scale_color_manual(values = cbep_colors()) +
   theme_cbep(base_size = 12) +
   theme(legend.position = 'None') +
   xlab('') +
   ylab('DIN (mg/l as N)')
-#> Warning: Removed 151 rows containing missing values (geom_point).
 ```
 
 <img src="FOCB_DIN_Analysis_files/figure-gfm/core_sites_plot_by_date-1.png" style="display: block; margin: auto;" />
@@ -1297,14 +1785,12 @@ core_months_data <- trend_data %>%
 ggplot(core_months_data, aes(year, din_N,)) +
   geom_jitter(aes(color = station_name)) + 
   stat_summary(fun = mean, geom = 'line', lwd = 1) +
-  scale_y_continuous(trans = 'log1p') +
+  #scale_y_continuous(trans = 'log1p') +
   facet_wrap(~station_name, nrow = 4) +
   scale_color_viridis_d(option = 'viridis') +
   theme_cbep(base_size = 12) +
   theme(legend.position = 'None',
         panel.spacing.x = unit(2.5, "lines"))
-#> Warning: Removed 152 rows containing non-finite values (stat_summary).
-#> Warning: Removed 152 rows containing missing values (geom_point).
 ```
 
 <img src="FOCB_DIN_Analysis_files/figure-gfm/core_months_jitter_plot_by_yr-1.png" style="display: block; margin: auto;" />
@@ -1336,7 +1822,6 @@ ggplot(core_months_data) +
         panel.spacing.x = unit(2.5, "lines")) +
   xlab('') +
   ylab('DIN (mg/l as N)')
-#> Warning: Removed 152 rows containing missing values (geom_point).
 ```
 
 <img src="FOCB_DIN_Analysis_files/figure-gfm/core_months_jitter_plot_by_date-1.png" style="display: block; margin: auto;" />
@@ -1452,7 +1937,6 @@ summary(trnd_lm_2)
 #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 #> 
 #> Residual standard error: 0.05595 on 1396 degrees of freedom
-#>   (152 observations deleted due to missingness)
 #> Multiple R-squared:  0.2717, Adjusted R-squared:  0.2676 
 #> F-statistic: 65.11 on 8 and 1396 DF,  p-value: < 2.2e-16
 ```
@@ -1487,12 +1971,12 @@ anova(trnd_lm_3)
 #> Analysis of Variance Table
 #> 
 #> Response: log1p(din_N)
-#>                         Df Sum Sq  Mean Sq F value Pr(>F)    
-#> poly(year, 2)            2 0.3836 0.191797 53.1906 <2e-16 ***
-#> month                    5 0.0377 0.007543  2.0918 0.0639 .  
-#> poly(year, 2):station   14 0.5864 0.041884 11.6156 <2e-16 ***
-#> month:year               5 0.0239 0.004784  1.3267 0.2501    
-#> Residuals             1378 4.9688 0.003606                   
+#>                         Df Sum Sq  Mean Sq F value  Pr(>F)    
+#> poly(year, 2)            2 0.3836 0.191797 53.8665 < 2e-16 ***
+#> month                    5 0.0377 0.007543  2.1184 0.06077 .  
+#> poly(year, 2):station   14 0.6483 0.046310 13.0062 < 2e-16 ***
+#> month:year               5 0.0243 0.004861  1.3652 0.23464    
+#> Residuals             1378 4.9065 0.003561                    
 #> ---
 #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ```
