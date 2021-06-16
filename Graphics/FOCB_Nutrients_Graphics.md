@@ -1,4 +1,4 @@
-Initial Review of Friends of Casco Bay Nutrient Data
+Graphics From Friends of Casco Bay Nutrient Data
 ================
 Curtis C. Bohlen, Casco Bay Estuary Partnership.
 04/26/2021
@@ -271,12 +271,12 @@ din_results_2019 <- din_data_19 %>%
 ### Output Descriptive Statistics for GIS
 
 ``` r
-write_csv(din_results_2019, 'din_2019.csv')
+write_csv(din_results_2019, file.path(sibling, 'GIS', 'din_2019.csv'))
 ```
 
 ## TN Data 2018 and 2019
 
-We restrict to mAy to September and omit station KVL84, for which data
+We restrict to May to September and omit station KVL84, for which data
 is very sparse.
 
 ``` r
@@ -329,7 +329,7 @@ tn_results_18_19 <- tn_data_18_19 %>%
 ### Output Descriptive Statistics for GIS
 
 ``` r
-write_csv(tn_results_18_19, 'tn_18_19.csv')
+write_csv(tn_results_18_19, file.path(sibling, 'GIS', 'tn_18_19.csv'))
 ```
 
 # Trend Data
@@ -514,7 +514,7 @@ plt <- ggplot(combo_data, aes(value, station_name)) +
 plt
 ```
 
-<img src="FOCB_Nutrients_Graphics_files/figure-gfm/unnamed-chunk-8-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_Nutrients_Graphics_files/figure-gfm/points_only-1.png" style="display: block; margin: auto;" />
 
 ``` r
 ggsave('figures/n_by_site.pdf', device = cairo_pdf, width = 6, height = 4)
@@ -541,7 +541,7 @@ plt +
 #> Warning: Removed 23 rows containing missing values (geom_segment).
 ```
 
-<img src="FOCB_Nutrients_Graphics_files/figure-gfm/unnamed-chunk-9-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_Nutrients_Graphics_files/figure-gfm/add_median-1.png" style="display: block; margin: auto;" />
 
 ``` r
 
@@ -580,7 +580,7 @@ plt <- ggplot(combo_data, aes(value, station_name)) +
 plt
 ```
 
-<img src="FOCB_Nutrients_Graphics_files/figure-gfm/unnamed-chunk-10-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_Nutrients_Graphics_files/figure-gfm/add_boxplot-1.png" style="display: block; margin: auto;" />
 
 ``` r
 ggsave('figures/n_by_site_box.pdf', device = cairo_pdf, width = 6, height = 4)

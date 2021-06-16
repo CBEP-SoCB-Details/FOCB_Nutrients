@@ -1,5 +1,5 @@
 ---
-title: "Initial Review of Friends of Casco Bay Nutrient Data"
+title: "Graphics From Friends of Casco Bay Nutrient Data"
 author: "Curtis C. Bohlen, Casco Bay Estuary Partnership."
 date: "04/26/2021"
 output:
@@ -107,7 +107,7 @@ those effects are minimized.
 We remove the Knightsville Landing Station, which has very limited TN data
 and no DIN data.
 
-```{r}
+```{r make_recent}
 recent_data <- strict_data %>%
   filter(year > 2014) %>%
   filter(station != 'KVL84') %>%
@@ -187,13 +187,13 @@ din_results_2019 <- din_data_19 %>%
 
 ### Output Descriptive Statistics for GIS
 ```{r}
-write_csv(din_results_2019, 'din_2019.csv')
+write_csv(din_results_2019, file.path(sibling, 'GIS', 'din_2019.csv'))
 ```
 
 ## TN Data 2018 and 2019
-We restrict to mAy to September and omit station KVL84, for which data is 
+We restrict to May to September and omit station KVL84, for which data is 
 very sparse.
-```{r}
+```{r make_18_19}
 tn_data_18_19 <- recent_data %>%
   filter(year > 2017) %>%
   filter(month %in% month.abb[5:9]) %>%
@@ -237,8 +237,8 @@ tn_results_18_19 <- tn_data_18_19 %>%
 ```
 
 ### Output Descriptive Statistics for GIS
-```{r}
-write_csv(tn_results_18_19, 'tn_18_19.csv')
+```{r write_tn_csv}
+write_csv(tn_results_18_19, file.path(sibling, 'GIS', 'tn_18_19.csv'))
 ```
 
 # Trend Data
@@ -269,7 +269,7 @@ trend_counts
 So, somewhat fewer sites qualify for long term trend analysis for TN. Those sites
 also have the more complete record for DIN.  Those are our "Core" trend sites.
 
-```{r}
+```{r pull_core_sites}
 core_sites <- trend_counts %>%
   filter(tn_total > 10) %>%
   pull(station)
@@ -348,7 +348,7 @@ For consistency, we keep graphics ordered by TN throughout.
 ## Combined Dataframe
 To facilitate combined plots, we create a data frame with 2018 and 2019 TN data
 and 2019 DIN data.  For consistency, we keep graphics ordered by TN.
-```{r}
+```{r combine_dfs}
 tmp_din <- din_data_19 %>%
   mutate(parameter = 'DIN') %>%
   rename(value = din_N)
@@ -371,7 +371,7 @@ rm(tmp_din, tmp_tn)
 
 
 ### Potential Plot #1 Points Only
-```{r fig.height = 4, fig.width = 6}
+```{r points_only, fig.height = 4, fig.width = 6}
 plt <- ggplot(combo_data, aes(value, station_name)) +
 
   geom_point(aes(color = parameter), alpha = 1) +
@@ -394,7 +394,7 @@ ggsave('figures/n_by_site.pdf', device = cairo_pdf, width = 6, height = 4)
 ```
 
 ### Potential Plot #2 Points with Medians
-```{r fig.height = 4, fig.width = 6}
+```{r add_median, fig.height = 4, fig.width = 6}
 plt + 
   # geom_pointrange(stat = "summary",
   #                 fun.min = function(z) {quantile(z,0.25)},
@@ -418,7 +418,7 @@ Looks pretty good.  The IQR does not add much, so we removed it.
 ### Potential Plot #3  Boxplots
 Because we are relying here on robust models, 
 
-```{r fig.height = 4, fig.width = 6}
+```{r add_boxplot, fig.height = 4, fig.width = 6}
 plt <- ggplot(combo_data, aes(value, station_name)) +
   geom_boxplot(color = cbep_colors()[3],
                fill = cbep_colors2()[4],
@@ -449,7 +449,7 @@ long-term data records, so we show annual mean / median values.
 
 ## Reorganize Data
 First, we pivot the trend data to long form.
-```{r}
+```{r pivot_longer}
 combo_trend <- trend_data %>%
   mutate(tn = if_else(tn <= 0 | tn >= 1.5, NA_real_, tn)) %>%
   select(-nox_N, -nh4_N, -organic_N) %>%
