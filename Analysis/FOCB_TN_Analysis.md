@@ -24,7 +24,6 @@ Curtis C. Bohlen, Casco Bay Estuary Partnership.
         -   [Linear Models](#linear-models)
         -   [Robust Linear Models](#robust-linear-models)
         -   [GAM Models](#gam-models)
-        -   [Marginal Means](#marginal-means)
         -   [Compare Model Results – Does it
             Matter?](#compare-model-results--does-it-matter)
         -   [Month Predictions](#month-predictions)
@@ -35,15 +34,17 @@ Curtis C. Bohlen, Casco Bay Estuary Partnership.
             Matter?](#compare-model-results--does-it-matter-1)
     -   [Conclusions](#conclusions)
 -   [Graphic Ideas](#graphic-ideas)
-    -   [Potential Plot \#1 Points Only](#potential-plot-1-points-only)
-    -   [Potential Plot \#2 Points with Medians and
-        IQR](#potential-plot-2-points-with-medians-and-iqr)
-    -   [Potential Plot \#3 Boxplots](#potential-plot-3-boxplots)
-    -   [Potential Plot \#4 Marginal Means Compared with
-        Observations](#potential-plot-4-marginal-means-compared-with-observations)
-    -   [Potential Plot \#5 Boxplots with Marginal
-        Means](#potential-plot-5-boxplots-with-marginal-means)
-    -   [Potential Plot \#6 Violins](#potential-plot-6-violins)
+    -   [Trim Outliers](#trim-outliers)
+        -   [Potential Plot \#1 Points
+            Only](#potential-plot-1-points-only)
+        -   [Potential Plot \#2 Points with Medians and
+            IQR](#potential-plot-2-points-with-medians-and-iqr)
+        -   [Potential Plot \#3 Boxplots](#potential-plot-3-boxplots)
+        -   [Potential Plot \#4 Marginal Means Compared with
+            Observations](#potential-plot-4-marginal-means-compared-with-observations)
+        -   [Potential Plot \#5 Boxplots with Marginal
+            Means](#potential-plot-5-boxplots-with-marginal-means)
+        -   [Potential Plot \#6 Violins](#potential-plot-6-violins)
 -   [Trend Analysis](#trend-analysis)
     -   [Identify Trend Stations](#identify-trend-stations)
     -   [Generate Trend Data](#generate-trend-data)
@@ -364,7 +365,7 @@ ggplot(recent_data, aes(station, tn)) +
 #> Warning: Transformation introduced infinite values in continuous y-axis
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-8-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Analysis_files/figure-gfm/plot_outliers-1.png" style="display: block; margin: auto;" />
 
 We also have one “zero” values in the recent TN data, so log transforms
 are problematic.
@@ -615,7 +616,7 @@ plot(full_tn_lm_draft)
 #>   13
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-16-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Analysis_files/figure-gfm/draft_tn_lm_diagnostics-1.png" style="display: block; margin: auto;" />
 
 ``` r
 par(oldpar)
@@ -726,7 +727,7 @@ plot(tn_lm)
 #> Warning in sqrt(crit * p * (1 - hh)/hh): NaNs produced
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-19-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Analysis_files/figure-gfm/tn_lm_diagnostics-1.png" style="display: block; margin: auto;" />
 
 ``` r
 par(oldpar)
@@ -763,7 +764,7 @@ plot(tn_emms_lm) + coord_flip() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.25, hjust = 1))
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-21-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Analysis_files/figure-gfm/tn_lm_marginals-1.png" style="display: block; margin: auto;" />
 
 ### Robust Linear Models
 
@@ -852,7 +853,7 @@ plot(tn_emms_rlm) + coord_flip() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.25, hjust = 1))
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-24-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Analysis_files/figure-gfm/tn_rlm_marginals-1.png" style="display: block; margin: auto;" />
 
 ``` r
 tn_emms_lm <- as_tibble(tn_emms_lm)
@@ -890,7 +891,7 @@ of less importance.
 plot(tn_gam_draft)
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-27-1.png" style="display: block; margin: auto;" /><img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-27-2.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Analysis_files/figure-gfm/view_tn_gam-1.png" style="display: block; margin: auto;" /><img src="FOCB_TN_Analysis_files/figure-gfm/view_tn_gam-2.png" style="display: block; margin: auto;" />
 We explored several different smoother specifications. The default
 smoother (shown) fits a wiggly day of year curve with effective degrees
 of freedom close to 7 that is probably not reasonable for representing a
@@ -939,7 +940,7 @@ factor.
 plot(tn_gam)
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-29-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Analysis_files/figure-gfm/view_smaller_tn_gam-1.png" style="display: block; margin: auto;" />
 
 Note that differences between years are substantial. Year 2016 was
 especially distinct. Weather in 2016 was unusual in many ways.
@@ -948,7 +949,7 @@ especially distinct. Weather in 2016 was unusual in many ways.
 gam.check(tn_gam)
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-30-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Analysis_files/figure-gfm/smaller_tn_gam_diagnostics-1.png" style="display: block; margin: auto;" />
 
     #> 
     #> Method: GCV   Optimizer: magic
@@ -967,7 +968,7 @@ Those diagnostics are not dreadful, although there is a remaining
 location to scale relationship and moderately skewed and strongly
 kurtotic residuals.
 
-### Marginal Means
+#### Marginal Means
 
 ``` r
 tn_emms_gam <- emmeans(tn_gam, 'station', type = 'response')
@@ -975,7 +976,7 @@ plot(tn_emms_gam) + coord_flip() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.25))
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-31-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Analysis_files/figure-gfm/tn_gam_marginals-1.png" style="display: block; margin: auto;" />
 
 ``` r
 tn_emms_gam <- as_tibble(tn_emms_gam)
@@ -1034,7 +1035,7 @@ ggplot(compare, aes(tn_mn, response)) +
   scale_y_log10()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/compare_2019_rlm-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Analysis_files/figure-gfm/compare_rlm-1.png" style="display: block; margin: auto;" />
 Results of the robust model are very similar.
 
 ##### GAM Model
@@ -1082,7 +1083,7 @@ ggplot(compare, aes(response.lm, response.rlm)) +
   scale_y_log10()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-32-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Analysis_files/figure-gfm/compare_mods-1.png" style="display: block; margin: auto;" />
 
 #### Compare GAM Model and Robust Model
 
@@ -1101,7 +1102,7 @@ ggplot(compare, aes(response.gam, response.rlm)) +
   scale_y_log10()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-33-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Analysis_files/figure-gfm/compare_gam_mod-1.png" style="display: block; margin: auto;" />
 We see high correlation. The choice of model here can make little
 difference in interpretation of results. The rough rank order of sites
 and general estimates of precision for each model are similar.
@@ -1115,7 +1116,7 @@ tn_emms_months <- emmeans(tn_lm, 'month', type = 'response')
 plot(tn_emms_months) + coord_flip()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-34-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Analysis_files/figure-gfm/month_emms_lm-1.png" style="display: block; margin: auto;" />
 
 #### From Robust Linear Model
 
@@ -1124,7 +1125,7 @@ tn_emms_months <- emmeans(tn_rlm, 'month', type = 'response')
 plot(tn_emms_months) + coord_flip()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-35-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Analysis_files/figure-gfm/month_emms_rlm-1.png" style="display: block; margin: auto;" />
 TN is generally higher in colder months, mirroring results for DIN.
 
 Winter month forecasts are quite different for the linear model and the
@@ -1195,7 +1196,7 @@ oldpar <- par(mfrow = c(2,2))
 plot(tn_lm_18_19)
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-40-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Analysis_files/figure-gfm/lm_18_19_diagnostics-1.png" style="display: block; margin: auto;" />
 
 ``` r
 par(oldpar)
@@ -1218,7 +1219,7 @@ oldpar <- par(mfrow = c(2,2))
 plot(tn_lm_18_19)
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-42-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Analysis_files/figure-gfm/lm_18_19_red_diagnostics-1.png" style="display: block; margin: auto;" />
 
 ``` r
 par(oldpar)
@@ -1232,7 +1233,7 @@ plot(tn_emms_lm_18_19) + coord_flip() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.25, hjust = 1))
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-43-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Analysis_files/figure-gfm/lm_18_19_marginals-1.png" style="display: block; margin: auto;" />
 
 #### Robust Linear Models
 
@@ -1281,7 +1282,7 @@ plot(tn_emms_rlm_18_19) + coord_flip() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.25, hjust = 1))
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-46-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Analysis_files/figure-gfm/rlm_18_19_marginals-1.png" style="display: block; margin: auto;" />
 
 The robust model generally provides slightly narrower error bands, but
 the patterns are similar.
@@ -1322,7 +1323,7 @@ anova(tn_gam_18_19_draft)
 plot(tn_gam_18_19_draft)
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-49-1.png" style="display: block; margin: auto;" /><img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-49-2.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Analysis_files/figure-gfm/view_gam_18_19_draft-1.png" style="display: block; margin: auto;" /><img src="FOCB_TN_Analysis_files/figure-gfm/view_gam_18_19_draft-2.png" style="display: block; margin: auto;" />
 We explored several different smoother specifications. The default
 smoother (shown) fits a wiggly day of year curve with effective degrees
 of freedom close to 8 that is not reasonable for representing a seasonal
@@ -1363,7 +1364,7 @@ the DOY term. We retain a reduced dimensionality smoother.
 gam.check(tn_gam_18_19)
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-51-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Analysis_files/figure-gfm/gam_18_19_diagnostics-1.png" style="display: block; margin: auto;" />
 
     #> 
     #> Method: GCV   Optimizer: magic
@@ -1388,7 +1389,7 @@ plot(tn_emms_gam_18_19) + coord_flip() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.25))
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-52-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Analysis_files/figure-gfm/gam_18_19_marginals-1.png" style="display: block; margin: auto;" />
 
 ``` r
 tn_emms_gam_18_19 <- as_tibble(tn_emms_gam_18_19)
@@ -1419,7 +1420,7 @@ ggplot(compare, aes(tn_mn, response)) +
   scale_y_log10()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/compare_2019_lm-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Analysis_files/figure-gfm/compare_18_19_lm-1.png" style="display: block; margin: auto;" />
 The log linear model generally fits very close to observed.
 
 ##### Robust Log Linear Model
@@ -1485,7 +1486,7 @@ ggplot(compare, aes(response.lm, response.rlm)) +
   coord_equal()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-53-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Analysis_files/figure-gfm/compare_18_19_mods-1.png" style="display: block; margin: auto;" />
 
 #### Compare GAM Model and Robust Model
 
@@ -1502,7 +1503,7 @@ ggplot(compare, aes(response.gam, response.rlm)) +
   coord_equal()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-54-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Analysis_files/figure-gfm/compare_18_19_gam_to_RLM-1.png" style="display: block; margin: auto;" />
 We see high correlation.
 
 ## Conclusions
@@ -1517,8 +1518,9 @@ It may be simplest to just show observed means for recent years.
 
 # Graphic Ideas
 
-These are based on the Full Data, not the restricted data \#\# Trim
-Outliers
+These are based on the Full Data, not the restricted data
+
+## Trim Outliers
 
 ``` r
 recent_data <- recent_data %>%
@@ -1539,7 +1541,7 @@ ggplot(recent_data, aes(tn, station_name)) +
   scale_x_log10()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-56-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Analysis_files/figure-gfm/plot_1-1.png" style="display: block; margin: auto;" />
 
 ### Potential Plot \#2 Points with Medians and IQR
 
@@ -1562,7 +1564,7 @@ ggplot(recent_data, aes(tn, station_name)) +
   scale_x_log10()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-57-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Analysis_files/figure-gfm/plot_2-1.png" style="display: block; margin: auto;" />
 
 Looks pretty good. The IQR does not add much.
 
@@ -1586,7 +1588,7 @@ ggplot(recent_data, aes(tn, station_name)) +
   scale_x_log10()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-58-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Analysis_files/figure-gfm/plot_3-1.png" style="display: block; margin: auto;" />
 
 ### Potential Plot \#4 Marginal Means Compared with Observations
 
@@ -1621,7 +1623,7 @@ ggplot(tn_emms_gam, aes(response, station_name)) +
   scale_x_log10()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-59-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Analysis_files/figure-gfm/plot_4-1.png" style="display: block; margin: auto;" />
 
 Visually, this is a nice design, but the difference between observed and
 modeled measures of location are visually jarring. It may work better
@@ -1647,7 +1649,7 @@ with the recent data.
   scale_x_log10()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-60-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Analysis_files/figure-gfm/plot_5-1.png" style="display: block; margin: auto;" />
 
 ### Potential Plot \#6 Violins
 
@@ -1668,7 +1670,7 @@ ggplot(recent_data, aes(tn, station_name)) +
   scale_x_log10()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-61-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Analysis_files/figure-gfm/plot_6-1.png" style="display: block; margin: auto;" />
 That’s overdone….
 
 # Trend Analysis
@@ -1723,7 +1725,7 @@ ggplot(trend_data, aes(tn)) +
 #> `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/unnamed-chunk-62-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Analysis_files/figure-gfm/trend_data_histogram-1.png" style="display: block; margin: auto;" />
 
 ### Data Prevalence
 

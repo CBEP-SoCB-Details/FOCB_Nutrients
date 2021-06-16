@@ -298,7 +298,7 @@ places where available data are biased.
 ```{r}
 plot(din_emms_lm) + coord_flip() + 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.25)) +
-  geom_point(data = recent_results, aes(y = as.numeric(station), x = din_N_md),
+  geom_point(data = recent_results, aes(y = station, x = din_N_md),
              color = 'red')
 ```
 
