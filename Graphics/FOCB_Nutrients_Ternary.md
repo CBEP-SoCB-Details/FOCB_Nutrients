@@ -23,7 +23,7 @@ Curtis C. Bohlen, Casco Bay Estuary Partnership.
 
 This notebook Looks at DIN and TN numbers from Friends of Casco Bay
 samples and produces “ternary plots” showing the relative importance or
-ammonium, nitrates, and organic nitrogen in Casco Bay waters.
+ammonium, nitrates, and “organic” nitrogen in Casco Bay waters.
 
 FOCB reports the TN samples and DIN samples were sent to different
 laboratories, and so direct comparison relies on consistent calibration
@@ -106,7 +106,7 @@ strict_data <- read_csv(file.path(sibling,
 #>   dt = col_datetime(format = ""),
 #>   year = col_double(),
 #>   yearf = col_double(),
-#>   month = col_logical(),
+#>   month = col_character(),
 #>   doy = col_double(),
 #>   tn_depth = col_double(),
 #>   din_depth = col_double(),
@@ -137,7 +137,7 @@ proportion_data <- strict_data %>%
 ### By Five Year “Eras”
 
 ``` r
-TernaryPlot(alab = 'Nitrate', blab = 'Ammonium', clab = 'Organic',
+TernaryPlot(alab = 'Nitrate', blab = 'Ammonium', clab = 'Other N',
             grid.lines = 5, grid.minor.lines = 0)
 TernaryPoints(proportion_data[4:6], pch = 20, col = cbep_colors()[proportion_data$era + 1])
 legend('topright', 
@@ -211,7 +211,7 @@ pal = addalpha(RColorBrewer::brewer.pal(6, 'Set1'), 0.5)
 # Cairo::Cairo(file = 'figures/ternary.png', width = 400, height = 400,
 #       type = 'png',
 #       family = 'Montserrat', pointsize = 9)
-TernaryPlot(alab = 'Nitrate', blab = 'Ammonium', clab = 'Organic',
+TernaryPlot(alab = 'Nitrate', blab = 'Ammonium', clab = 'Other N',
             grid.lines = 5, grid.minor.lines = 0)
 TernaryPoints(proportion_data[4:6], pch = 16, col = pal[as.numeric(proportion_data$region)])
 legend('top', ncol = 3,
@@ -236,7 +236,7 @@ device, as we can specify fonts and base font size.
 ``` r
 cairo_pdf('figures/ternary.pdf', width = 3.5, height = 5,
           family = 'Montserrat', pointsize = 8)
-TernaryPlot(alab = 'Nitrate', blab = 'Ammonium', clab = 'Organic',
+TernaryPlot(alab = 'Nitrate', blab = 'Ammonium', clab = 'Other N',
             grid.lines = 5, grid.minor.lines = 0)
 TernaryPoints(proportion_data[4:6], pch = 16, col = pal[as.numeric(proportion_data$region)])
 legend('top', ncol = 3,
@@ -262,7 +262,7 @@ sum_p_data <- strict_data %>%
 ```
 
 ``` r
-TernaryPlot(alab = 'Nitrate', blab = 'Ammonium', clab = 'Organic',
+TernaryPlot(alab = 'Nitrate', blab = 'Ammonium', clab = 'Other N',
             grid.lines = 5, grid.minor.lines = 0,
             #xlim = c(-0.5, -0.25), ylim  = c(0, .25)
             )
@@ -276,7 +276,7 @@ TernaryPoints(sum_p_data[2:4])
 ```
 
 ``` r
-TernaryPlot(alab = 'Nitrate', blab = 'Ammonium', clab = 'Organic',
+TernaryPlot(alab = 'Nitrate', blab = 'Ammonium', clab = 'Other N',
             grid.lines = 5, grid.minor.lines = 0,
             xlim = c(-0.5, -0.25), ylim  = c(0, .25))
 #TernaryPoints(sum_p_data[2:4])
