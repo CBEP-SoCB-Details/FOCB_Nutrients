@@ -10,23 +10,21 @@ Curtis C. Bohlen, Casco Bay Estuary Partnership.
     -   [Station Names](#station-names)
 -   [Recent Conditions](#recent-conditions)
     -   [TN Data 2018 and 2019](#tn-data-2018-and-2019)
-        -   [Data Prevalence](#data-prevalence)
         -   [Descriptive Statistics](#descriptive-statistics)
         -   [Output Descriptive Statistics for
             GIS](#output-descriptive-statistics-for-gis)
     -   [DIN Data from 2019](#din-data-from-2019)
-        -   [Data Prevalence](#data-prevalence-1)
         -   [Descriptive Statistics](#descriptive-statistics-1)
         -   [Output Descriptive Statistics for
             GIS](#output-descriptive-statistics-for-gis-1)
 -   [Trend Data](#trend-data)
     -   [Identify Trend Stations](#identify-trend-stations)
     -   [Generate Trend Data](#generate-trend-data)
-    -   [Data Prevalence](#data-prevalence-2)
-        -   [TN Prevalence By Month](#tn-prevalence-by-month)
 -   [Recent Conditions](#recent-conditions-1)
-    -   [TN Plot \#2 Points with
-        Medians](#tn-plot-2-points-with-medians)
+    -   [Total Nitrogen Graphics](#total-nitrogen-graphics)
+        -   [Basic Plot](#basic-plot)
+        -   [TN Plot \#2 Points with
+            Medians](#tn-plot-2-points-with-medians)
     -   [DIN Graphics](#din-graphics)
         -   [din Plot \#2 Points with
             Medians](#din-plot-2-points-with-medians)
@@ -219,25 +217,6 @@ tn_data_18_19 <- recent_data %>%
   mutate(station_name = fct_reorder(factor(station_name), tn, na.rm = TRUE))
 ```
 
-### Data Prevalence
-
-``` r
-xtabs(~ month + station, data = tn_data_18_19 )%>%
-  as_tibble() %>%
-  mutate(month = factor(month, levels = month.abb)) %>%
-  mutate(station = factor(station, levels = levels(tn_data_18_19$station))) %>%
-  filter(n>0) %>%
-
-  ggplot(aes(station, month, fill = factor(n))) +
-  geom_tile() +
-  theme_cbep(base_size = 12) +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .25))
-```
-
-<img src="FOCB_Nutrients_Graphics_files/figure-gfm/tn_data_months-1.png" style="display: block; margin: auto;" />
-Sampling is not completely equal, but we have few empty cells in the
-sample frame.
-
 ### Descriptive Statistics
 
 ``` r
@@ -281,35 +260,6 @@ din_data_19 <- recent_data %>%
   mutate(station_name = factor(station_name, 
                                levels = levels(tn_data_18_19$station_name)))
 ```
-
-### Data Prevalence
-
-``` r
-xtabs(~ month + station, data = din_data_19 )%>%
-  as_tibble() %>%
-  mutate(month = factor(month, levels = month.abb)) %>%
-  mutate(station = factor(station, levels = levels(din_data_19$station))) %>%
-  filter(n>0) %>%
-
-  ggplot(aes(station, month, fill = factor(n))) +
-  geom_tile() +
-  theme_cbep(base_size = 12) +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .25))
-```
-
-<img src="FOCB_Nutrients_Graphics_files/figure-gfm/din_data_months-1.png" style="display: block; margin: auto;" />
-
-So sampling is not completely equal and we do have two sites in the
-Harraseeket with poor data coverage.
-
-``` r
-ggplot(din_data_19, aes(din_N)) +
-  geom_histogram() +
-  scale_x_continuous(trans = 'log')
-#> `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-```
-
-<img src="FOCB_Nutrients_Graphics_files/figure-gfm/hist_2019-1.png" style="display: block; margin: auto;" />
 
 ``` r
 ggplot(din_data_19, aes(din_N, station_name)) +
@@ -367,30 +317,13 @@ trend_counts <- strict_data %>%
             .groups = 'drop') %>%
   filter((din_total >= 10 & din_last_5 >= 2) | 
            (tn_total >= 10 & tn_last_5 >= 2))
-trend_counts
-#> # A tibble: 8 x 5
-#>   station din_last_5 din_total tn_last_5 tn_total
-#>   <chr>        <int>     <int>     <int>    <int>
-#> 1 EEB18            2        10         3        7
-#> 2 NMM79            2        12         3        7
-#> 3 P5BSD            4        18         5       13
-#> 4 P6FGG            4        18         5       13
-#> 5 P7CBI            3        17         5       13
-#> 6 PKT42            4        18         4       12
-#> 7 RRY47            2        10         3        7
-#> 8 SMT50            3        17         4       12
-```
 
-So, somewhat fewer sites qualify for long term trend analysis for TN.
-Those sites also have the more complete record for DIN. Those are our
-“Core” trend sites.
-
-``` r
 core_sites <- trend_counts %>%
   filter(tn_total > 10) %>%
   pull(station)
 core_sites
 #> [1] "P5BSD" "P6FGG" "P7CBI" "PKT42" "SMT50"
+rm(trend_counts)
 ```
 
 ## Generate Trend Data
@@ -409,73 +342,13 @@ trend_data <- strict_data %>%
   select(- din_depth, -tn_depth, -c(nox:din))
 ```
 
-## Data Prevalence
-
-\#\#\#DIN\_Prevalence by Month
-
-``` r
-xtabs(~ month + station, data = trend_data, subset = ! is.na(din_N))%>%
-  as_tibble() %>%
-  mutate(month = factor(month, levels = month.abb)) %>%
-  filter(n>0) %>%
-
-  ggplot(aes(station, month, fill = sqrt(n))) +
-  geom_tile() +
-  theme_cbep(base_size = 12) +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .25))
-```
-
-<img src="FOCB_Nutrients_Graphics_files/figure-gfm/din_trend_data_months-1.png" style="display: block; margin: auto;" />
-
-### TN Prevalence By Month
-
-``` r
-xtabs(~ month + station, data = trend_data, subset = ! is.na(tn))%>%
-  as_tibble() %>%
-  mutate(month = factor(month, levels = month.abb)) %>%
-  filter(n>0) %>%
-
-  ggplot(aes(station, month, fill = sqrt(n))) +
-  geom_tile() +
-  theme_cbep(base_size = 12) +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .25))
-```
-
-<img src="FOCB_Nutrients_Graphics_files/figure-gfm/tn_trend_data_months-1.png" style="display: block; margin: auto;" />
-So data coverage for these “core” stations is pretty robust.
-
-\#\#\#DIN\_Prevalence\_By Year
-
-``` r
-xtabs(~ year + station, data = trend_data, subset = ! is.na(din_N))%>%
-  as_tibble() %>% 
-  filter(n>0) %>%
-
-  ggplot(aes(station, year, fill = sqrt(n))) +
-  geom_tile() +
-  theme_cbep(base_size = 12) +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .25))
-```
-
-<img src="FOCB_Nutrients_Graphics_files/figure-gfm/din_trend_data_years-1.png" style="display: block; margin: auto;" />
-
-``` r
-xtabs(~ year + station, data = trend_data, subset = ! is.na(tn))%>%
-  as_tibble() %>% 
-  filter(n>0) %>%
-
-  ggplot(aes(station, year, fill = sqrt(n))) +
-  geom_tile() +
-  theme_cbep(base_size = 12) +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .25))
-```
-
-<img src="FOCB_Nutrients_Graphics_files/figure-gfm/tn_trend_data_years-1.png" style="display: block; margin: auto;" />
-
 # Recent Conditions
 
-For consistency, we keep graphics ordered by TN throughout. \#\# Total
-Nitrogen Graphics
+For consistency, we keep graphics ordered by TN throughout.
+
+## Total Nitrogen Graphics
+
+### Basic Plot
 
 ``` r
 plt <- ggplot(tn_data_18_19, aes(tn, station_name)) +
@@ -487,18 +360,27 @@ plt <- ggplot(tn_data_18_19, aes(tn, station_name)) +
   
   theme_cbep(base_size = 12) +
   theme(axis.title.x = element_text(size = 10),
-        axis.text.x= element_text(angle = 45, hjust = 1, size = 8),
+        #axis.text.x= element_text(angle = 45, hjust = 1, size = 8),
         legend.position = 'None',
-        panel.grid.major.x = element_line(color = 'gray85'),
-          panel.spacing.x = unit(1, 'lines')) +
-  scale_x_continuous(breaks = c(0.32, 0.45))
+        #panel.grid.major.x = element_line(color = 'gray85'),
+        panel.spacing.x = unit(1, 'lines')) +
+  
+  geom_vline(xintercept = 0.32, color = cbep_colors()[3], lty = 3) +
+  geom_text(aes(x = 0.35, y = 3, label = '0.32'), 
+            angle = 90, hjust = 0, size = 3,
+                color = cbep_colors()[3]) +
+  geom_vline(xintercept = 0.45, color = cbep_colors()[3], lty = 3) +
+  geom_text(aes(x = 0.49, y = 3, label = '0.45'), 
+            angle = 90, hjust = 0, size = 3,
+                color = cbep_colors()[3]) +
+  ggtitle('FOCB Data 2018-2019')
 plt
 ```
 
 <img src="FOCB_Nutrients_Graphics_files/figure-gfm/tn_points_only-1.png" style="display: block; margin: auto;" />
 
 ``` r
-ggsave('figures/tn_by_site.pdf', device = cairo_pdf, width = 6, height = 4)
+ggsave('figures/tn_by_site.pdf', device = cairo_pdf, width = 3.5, height = 4)
 ```
 
 ### TN Plot \#2 Points with Medians
@@ -524,7 +406,7 @@ plt +
 
 ``` r
 
-ggsave('figures/tn_by_site_median.pdf', device = cairo_pdf, width = 6, height = 4)
+ggsave('figures/tn_by_site_median.pdf', device = cairo_pdf, width = 3.5, height = 4)
 #> Warning: Removed 23 rows containing missing values (geom_segment).
 ```
 
@@ -536,20 +418,21 @@ plt <- ggplot(din_data_19, aes(din_N, station_name)) +
   geom_point(alpha = 1, color = cbep_colors()[6]) +
   
   ylab('') +
-  xlab('Dissolved Inorganic Nitrogen (mg/l)') +
+  xlab('Dissolved Inorganic Nitrogen\n(mg/l)') +
   
   theme_cbep(base_size = 12) +
-  theme(axis.title.x = element_text(size = 10),
+  theme(axis.title.x = element_text(size = 9),
         legend.position = 'None',
-        panel.grid.major.x = element_line(color = 'gray85'),
-          panel.spacing.x = unit(1, 'lines'))
+        #panel.grid.major.x = element_line(color = 'gray85'),
+        panel.spacing.x = unit(1, 'lines')) +
+  ggtitle('FOCB Data 2019')
 plt
 ```
 
 <img src="FOCB_Nutrients_Graphics_files/figure-gfm/din_points_only-1.png" style="display: block; margin: auto;" />
 
 ``` r
-ggsave('figures/din_by_site.pdf', device = cairo_pdf, width = 6, height = 4)
+ggsave('figures/din_by_site.pdf', device = cairo_pdf, width = 3.5, height = 4)
 ```
 
 ### din Plot \#2 Points with Medians
@@ -575,7 +458,7 @@ plt +
 
 ``` r
 
-ggsave('figures/din_by_site_median.pdf', device = cairo_pdf, width = 6, height = 4)
+ggsave('figures/din_by_site_median.pdf', device = cairo_pdf, width = 3.5, height = 4)
 #> Warning: Removed 23 rows containing missing values (geom_segment).
 ```
 

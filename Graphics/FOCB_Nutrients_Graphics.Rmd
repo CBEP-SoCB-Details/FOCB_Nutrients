@@ -138,21 +138,6 @@ tn_data_18_19 <- recent_data %>%
   mutate(station_name = fct_reorder(factor(station_name), tn, na.rm = TRUE))
 ```
 
-### Data Prevalence
-```{r tn_data_months}
-xtabs(~ month + station, data = tn_data_18_19 )%>%
-  as_tibble() %>%
-  mutate(month = factor(month, levels = month.abb)) %>%
-  mutate(station = factor(station, levels = levels(tn_data_18_19$station))) %>%
-  filter(n>0) %>%
-
-  ggplot(aes(station, month, fill = factor(n))) +
-  geom_tile() +
-  theme_cbep(base_size = 12) +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .25))
-```
-Sampling is not completely equal, but we have few empty cells in the sample 
-frame.
 
 ### Descriptive Statistics
 ```{r tn_18_19_results}
@@ -192,29 +177,6 @@ din_data_19 <- recent_data %>%
   mutate(station = factor(station, levels = levels(tn_data_18_19$station))) %>%
   mutate(station_name = factor(station_name, 
                                levels = levels(tn_data_18_19$station_name)))
-```
-
-### Data Prevalence
-```{r din_data_months}
-xtabs(~ month + station, data = din_data_19 )%>%
-  as_tibble() %>%
-  mutate(month = factor(month, levels = month.abb)) %>%
-  mutate(station = factor(station, levels = levels(din_data_19$station))) %>%
-  filter(n>0) %>%
-
-  ggplot(aes(station, month, fill = factor(n))) +
-  geom_tile() +
-  theme_cbep(base_size = 12) +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .25))
-```
-
-So sampling is not completely equal and we do have two sites in the Harraseeket
-with poor data coverage.
-
-```{r hist_2019}
-ggplot(din_data_19, aes(din_N)) +
-  geom_histogram() +
-  scale_x_continuous(trans = 'log')
 ```
 
 ```{r jitter_plot_2019}
@@ -267,17 +229,12 @@ trend_counts <- strict_data %>%
             .groups = 'drop') %>%
   filter((din_total >= 10 & din_last_5 >= 2) | 
            (tn_total >= 10 & tn_last_5 >= 2))
-trend_counts
-```
 
-So, somewhat fewer sites qualify for long term trend analysis for TN. Those sites
-also have the more complete record for DIN.  Those are our "Core" trend sites.
-
-```{r pull_core_sites}
 core_sites <- trend_counts %>%
   filter(tn_total > 10) %>%
   pull(station)
 core_sites
+rm(trend_counts)
 ```
 
 ## Generate Trend Data
@@ -295,60 +252,11 @@ trend_data <- strict_data %>%
   select(- din_depth, -tn_depth, -c(nox:din))
 ```
 
-## Data Prevalence
-###DIN_Prevalence by Month
-```{r din_trend_data_months}
-xtabs(~ month + station, data = trend_data, subset = ! is.na(din_N))%>%
-  as_tibble() %>%
-  mutate(month = factor(month, levels = month.abb)) %>%
-  filter(n>0) %>%
-
-  ggplot(aes(station, month, fill = sqrt(n))) +
-  geom_tile() +
-  theme_cbep(base_size = 12) +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .25))
-```
-
-### TN Prevalence By Month
-```{r tn_trend_data_months}
-xtabs(~ month + station, data = trend_data, subset = ! is.na(tn))%>%
-  as_tibble() %>%
-  mutate(month = factor(month, levels = month.abb)) %>%
-  filter(n>0) %>%
-
-  ggplot(aes(station, month, fill = sqrt(n))) +
-  geom_tile() +
-  theme_cbep(base_size = 12) +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .25))
-```
-So data coverage for these "core" stations is pretty robust.
-
-###DIN_Prevalence_By Year
-```{r din_trend_data_years}
-xtabs(~ year + station, data = trend_data, subset = ! is.na(din_N))%>%
-  as_tibble() %>% 
-  filter(n>0) %>%
-
-  ggplot(aes(station, year, fill = sqrt(n))) +
-  geom_tile() +
-  theme_cbep(base_size = 12) +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .25))
-```
-
-```{r tn_trend_data_years}
-xtabs(~ year + station, data = trend_data, subset = ! is.na(tn))%>%
-  as_tibble() %>% 
-  filter(n>0) %>%
-
-  ggplot(aes(station, year, fill = sqrt(n))) +
-  geom_tile() +
-  theme_cbep(base_size = 12) +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .25))
-```
-
 # Recent Conditions
 For consistency, we keep graphics ordered by TN throughout.
+
 ## Total Nitrogen Graphics
+### Basic Plot
 ```{r tn_points_only, fig.height = 4, fig.width = 3.5}
 plt <- ggplot(tn_data_18_19, aes(tn, station_name)) +
 
@@ -359,14 +267,23 @@ plt <- ggplot(tn_data_18_19, aes(tn, station_name)) +
   
   theme_cbep(base_size = 12) +
   theme(axis.title.x = element_text(size = 10),
-        axis.text.x= element_text(angle = 45, hjust = 1, size = 8),
+        #axis.text.x= element_text(angle = 45, hjust = 1, size = 8),
         legend.position = 'None',
-        panel.grid.major.x = element_line(color = 'gray85'),
-          panel.spacing.x = unit(1, 'lines')) +
-  scale_x_continuous(breaks = c(0.32, 0.45))
+        #panel.grid.major.x = element_line(color = 'gray85'),
+        panel.spacing.x = unit(1, 'lines')) +
+  
+  geom_vline(xintercept = 0.32, color = cbep_colors()[3], lty = 3) +
+  geom_text(aes(x = 0.35, y = 3, label = '0.32'), 
+            angle = 90, hjust = 0, size = 3,
+                color = cbep_colors()[3]) +
+  geom_vline(xintercept = 0.45, color = cbep_colors()[3], lty = 3) +
+  geom_text(aes(x = 0.49, y = 3, label = '0.45'), 
+            angle = 90, hjust = 0, size = 3,
+                color = cbep_colors()[3]) +
+  ggtitle('FOCB Data 2018-2019')
 plt
 
-ggsave('figures/tn_by_site.pdf', device = cairo_pdf, width = 6, height = 4)
+ggsave('figures/tn_by_site.pdf', device = cairo_pdf, width = 3.5, height = 4)
 ```
 
 ### TN Plot #2 Points with Medians
@@ -386,7 +303,7 @@ plt +
                   color = cbep_colors()[3])
 
 
-ggsave('figures/tn_by_site_median.pdf', device = cairo_pdf, width = 6, height = 4)
+ggsave('figures/tn_by_site_median.pdf', device = cairo_pdf, width = 3.5, height = 4)
 ```
 
 ## DIN Graphics
@@ -396,16 +313,17 @@ plt <- ggplot(din_data_19, aes(din_N, station_name)) +
   geom_point(alpha = 1, color = cbep_colors()[6]) +
   
   ylab('') +
-  xlab('Dissolved Inorganic Nitrogen (mg/l)') +
+  xlab('Dissolved Inorganic Nitrogen\n(mg/l)') +
   
   theme_cbep(base_size = 12) +
-  theme(axis.title.x = element_text(size = 10),
+  theme(axis.title.x = element_text(size = 9),
         legend.position = 'None',
-        panel.grid.major.x = element_line(color = 'gray85'),
-          panel.spacing.x = unit(1, 'lines'))
+        #panel.grid.major.x = element_line(color = 'gray85'),
+        panel.spacing.x = unit(1, 'lines')) +
+  ggtitle('FOCB Data 2019')
 plt
 
-ggsave('figures/din_by_site.pdf', device = cairo_pdf, width = 6, height = 4)
+ggsave('figures/din_by_site.pdf', device = cairo_pdf, width = 3.5, height = 4)
 ```
 
 ### din Plot #2 Points with Medians
@@ -425,7 +343,7 @@ plt +
                   color = cbep_colors()[3])
 
 
-ggsave('figures/din_by_site_median.pdf', device = cairo_pdf, width = 6, height = 4)
+ggsave('figures/din_by_site_median.pdf', device = cairo_pdf, width = 3.5, height = 4)
 ```
 
 
