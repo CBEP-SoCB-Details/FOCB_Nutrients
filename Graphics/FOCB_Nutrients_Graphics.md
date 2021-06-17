@@ -9,12 +9,12 @@ Curtis C. Bohlen, Casco Bay Estuary Partnership.
     -   [Load Data](#load-data-1)
     -   [Station Names](#station-names)
 -   [Recent Conditions](#recent-conditions)
-    -   [DIN Data from 2019](#din-data-from-2019)
+    -   [TN Data 2018 and 2019](#tn-data-2018-and-2019)
         -   [Data Prevalence](#data-prevalence)
         -   [Descriptive Statistics](#descriptive-statistics)
         -   [Output Descriptive Statistics for
             GIS](#output-descriptive-statistics-for-gis)
-    -   [TN Data 2018 and 2019](#tn-data-2018-and-2019)
+    -   [DIN Data from 2019](#din-data-from-2019)
         -   [Data Prevalence](#data-prevalence-1)
         -   [Descriptive Statistics](#descriptive-statistics-1)
         -   [Output Descriptive Statistics for
@@ -25,12 +25,18 @@ Curtis C. Bohlen, Casco Bay Estuary Partnership.
     -   [Data Prevalence](#data-prevalence-2)
         -   [TN Prevalence By Month](#tn-prevalence-by-month)
 -   [Recent Conditions](#recent-conditions-1)
-    -   [Combined Dataframe](#combined-dataframe)
-        -   [Potential Plot \#1 Points
-            Only](#potential-plot-1-points-only)
-        -   [Potential Plot \#2 Points with
-            Medians](#potential-plot-2-points-with-medians)
-        -   [Potential Plot \#3 Boxplots](#potential-plot-3-boxplots)
+    -   [TN Plot \#2 Points with
+        Medians](#tn-plot-2-points-with-medians)
+    -   [DIN Graphics](#din-graphics)
+        -   [din Plot \#2 Points with
+            Medians](#din-plot-2-points-with-medians)
+    -   [Combined Graphics](#combined-graphics)
+        -   [Combined Dataframe](#combined-dataframe)
+        -   [Combined Plot \#1 Points
+            Only](#combined-plot-1-points-only)
+        -   [Combined Plot \#2 Points with
+            Medians](#combined-plot-2-points-with-medians)
+        -   [Combined Plot \#3 Boxplots](#combined-plot-3-boxplots)
 -   [Trend Graphics](#trend-graphics)
     -   [Reorganize Data](#reorganize-data)
 -   [Potential Plot \# 1 Facet Grid](#potential-plot--1-facet-grid)
@@ -198,6 +204,66 @@ recent_data <- recent_data %>%
    relocate(station_name, .after = station)
 ```
 
+## TN Data 2018 and 2019
+
+We restrict to May to September and omit station KVL84, for which data
+is very sparse.
+
+``` r
+tn_data_18_19 <- recent_data %>%
+  filter(year > 2017) %>%
+  filter(month %in% month.abb[5:9]) %>%
+  filter(tn > 0, tn < 1.5) %>%
+  select(station, station_name, dt, month, doy, tn) %>%
+  mutate(station = fct_reorder(factor(station), tn, na.rm = TRUE)) %>%
+  mutate(station_name = fct_reorder(factor(station_name), tn, na.rm = TRUE))
+```
+
+### Data Prevalence
+
+``` r
+xtabs(~ month + station, data = tn_data_18_19 )%>%
+  as_tibble() %>%
+  mutate(month = factor(month, levels = month.abb)) %>%
+  mutate(station = factor(station, levels = levels(tn_data_18_19$station))) %>%
+  filter(n>0) %>%
+
+  ggplot(aes(station, month, fill = factor(n))) +
+  geom_tile() +
+  theme_cbep(base_size = 12) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .25))
+```
+
+<img src="FOCB_Nutrients_Graphics_files/figure-gfm/tn_data_months-1.png" style="display: block; margin: auto;" />
+Sampling is not completely equal, but we have few empty cells in the
+sample frame.
+
+### Descriptive Statistics
+
+``` r
+tn_results_18_19 <- tn_data_18_19 %>%
+  mutate(tn = if_else(tn > 1.5 | tn <= 0, NA_real_, tn)) %>%
+  group_by(station) %>%
+  summarize(across(tn, c(mn = ~ mean(.x, na.rm = TRUE),
+                                  sd = ~ sd(.x, na.rm = TRUE), 
+                                  n = ~sum(! is.na(.x)),
+                                  md = ~ median(.x, na.rm = TRUE),
+                                  iqr = ~ IQR(.x, na.rm = TRUE),
+                                  p90 = ~ quantile(.x, .9, na.rm = TRUE),
+                                  gm = ~ exp(mean(log(.x), na.rm = TRUE))))) %>%
+  mutate(station_name = names_df$Alt_Name[match(station,
+                                                names_df$Station_ID)]) %>%
+  mutate(station = fct_reorder(factor(station), tn_md),
+         station_name = fct_reorder(factor(station_name), tn_md)) %>%
+  relocate(station_name, .after = station)
+```
+
+### Output Descriptive Statistics for GIS
+
+``` r
+write_csv(tn_results_18_19, file.path(sibling, 'GIS', 'tn_18_19.csv'))
+```
+
 ## DIN Data from 2019
 
 DIN coverage in 2019 is sparse, but consistent across stations. October
@@ -210,7 +276,10 @@ din_data_19 <- recent_data %>%
   filter(year == 2019)  %>%
   filter(month %in% month.abb[5:9]) %>%
   filter(! is.na(din_N)) %>%
-  select(station, station_name, dt, month, doy, din_N)
+  select(station, station_name, dt, month, doy, din_N) %>%
+  mutate(station = factor(station, levels = levels(tn_data_18_19$station))) %>%
+  mutate(station_name = factor(station_name, 
+                               levels = levels(tn_data_18_19$station_name)))
 ```
 
 ### Data Prevalence
@@ -272,64 +341,6 @@ din_results_2019 <- din_data_19 %>%
 
 ``` r
 write_csv(din_results_2019, file.path(sibling, 'GIS', 'din_2019.csv'))
-```
-
-## TN Data 2018 and 2019
-
-We restrict to May to September and omit station KVL84, for which data
-is very sparse.
-
-``` r
-tn_data_18_19 <- recent_data %>%
-  filter(year > 2017) %>%
-  filter(month %in% month.abb[5:9]) %>%
-  filter(tn > 0, tn < 1.5) %>%
-  select(station, station_name, dt, month, doy, tn)
-```
-
-### Data Prevalence
-
-``` r
-xtabs(~ month + station, data = tn_data_18_19 )%>%
-  as_tibble() %>%
-  mutate(month = factor(month, levels = month.abb)) %>%
-   mutate(station = factor(station, levels = levels(din_data_19$station))) %>%
-  filter(n>0) %>%
-
-  ggplot(aes(station, month, fill = factor(n))) +
-  geom_tile() +
-  theme_cbep(base_size = 12) +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .25))
-```
-
-<img src="FOCB_Nutrients_Graphics_files/figure-gfm/tn_data_months-1.png" style="display: block; margin: auto;" />
-Sampling is not completely equal, but we have no empty cells in the
-sample frame.
-
-### Descriptive Statistics
-
-``` r
-tn_results_18_19 <- tn_data_18_19 %>%
-  mutate(tn = if_else(tn > 1.5 | tn <= 0, NA_real_, tn)) %>%
-  group_by(station) %>%
-  summarize(across(tn, c(mn = ~ mean(.x, na.rm = TRUE),
-                                  sd = ~ sd(.x, na.rm = TRUE), 
-                                  n = ~sum(! is.na(.x)),
-                                  md = ~ median(.x, na.rm = TRUE),
-                                  iqr = ~ IQR(.x, na.rm = TRUE),
-                                  p90 = ~ quantile(.x, .9, na.rm = TRUE),
-                                  gm = ~ exp(mean(log(.x), na.rm = TRUE))))) %>%
-  mutate(station_name = names_df$Alt_Name[match(station,
-                                                names_df$Station_ID)]) %>%
-  mutate(station = fct_reorder(factor(station), tn_md),
-         station_name = fct_reorder(factor(station_name), tn_md)) %>%
-  relocate(station_name, .after = station)
-```
-
-### Output Descriptive Statistics for GIS
-
-``` r
-write_csv(tn_results_18_19, file.path(sibling, 'GIS', 'tn_18_19.csv'))
 ```
 
 # Trend Data
@@ -463,9 +474,114 @@ xtabs(~ year + station, data = trend_data, subset = ! is.na(tn))%>%
 
 # Recent Conditions
 
-For consistency, we keep graphics ordered by TN throughout.
+For consistency, we keep graphics ordered by TN throughout. \#\# Total
+Nitrogen Graphics
 
-## Combined Dataframe
+``` r
+plt <- ggplot(tn_data_18_19, aes(tn, station_name)) +
+
+  geom_point(alpha = 1, color = cbep_colors()[4]) +
+  
+  ylab('') +
+  xlab('Total Nitrogen (mg/l)') +
+  
+  theme_cbep(base_size = 12) +
+  theme(axis.title.x = element_text(size = 10),
+        axis.text.x= element_text(angle = 45, hjust = 1, size = 8),
+        legend.position = 'None',
+        panel.grid.major.x = element_line(color = 'gray85'),
+          panel.spacing.x = unit(1, 'lines')) +
+  scale_x_continuous(breaks = c(0.32, 0.45))
+plt
+```
+
+<img src="FOCB_Nutrients_Graphics_files/figure-gfm/tn_points_only-1.png" style="display: block; margin: auto;" />
+
+``` r
+ggsave('figures/tn_by_site.pdf', device = cairo_pdf, width = 6, height = 4)
+```
+
+### TN Plot \#2 Points with Medians
+
+``` r
+plt + 
+  # geom_pointrange(stat = "summary",
+  #                 fun.min = function(z) {quantile(z,0.25)},
+  #                 fun.max = function(z) {quantile(z,0.75)},
+  #                 fun = median,
+  #                 size = .5,
+  #                 shape = 3,
+  #                 color = cbep_colors()[5]) +
+
+  stat_summary(fun = median,
+                  size = .5,
+                  shape = 3,
+                  color = cbep_colors()[3])
+#> Warning: Removed 23 rows containing missing values (geom_segment).
+```
+
+<img src="FOCB_Nutrients_Graphics_files/figure-gfm/tn_add_median-1.png" style="display: block; margin: auto;" />
+
+``` r
+
+ggsave('figures/tn_by_site_median.pdf', device = cairo_pdf, width = 6, height = 4)
+#> Warning: Removed 23 rows containing missing values (geom_segment).
+```
+
+## DIN Graphics
+
+``` r
+plt <- ggplot(din_data_19, aes(din_N, station_name)) +
+
+  geom_point(alpha = 1, color = cbep_colors()[6]) +
+  
+  ylab('') +
+  xlab('Dissolved Inorganic Nitrogen (mg/l)') +
+  
+  theme_cbep(base_size = 12) +
+  theme(axis.title.x = element_text(size = 10),
+        legend.position = 'None',
+        panel.grid.major.x = element_line(color = 'gray85'),
+          panel.spacing.x = unit(1, 'lines'))
+plt
+```
+
+<img src="FOCB_Nutrients_Graphics_files/figure-gfm/din_points_only-1.png" style="display: block; margin: auto;" />
+
+``` r
+ggsave('figures/din_by_site.pdf', device = cairo_pdf, width = 6, height = 4)
+```
+
+### din Plot \#2 Points with Medians
+
+``` r
+plt + 
+  # geom_pointrange(stat = "summary",
+  #                 fun.min = function(z) {quantile(z,0.25)},
+  #                 fun.max = function(z) {quantile(z,0.75)},
+  #                 fun = median,
+  #                 size = .5,
+  #                 shape = 3,
+  #                 color = cbep_colors()[5]) +
+
+  stat_summary(fun = median,
+                  size = .5,
+                  shape = 3,
+                  color = cbep_colors()[3])
+#> Warning: Removed 23 rows containing missing values (geom_segment).
+```
+
+<img src="FOCB_Nutrients_Graphics_files/figure-gfm/din_add_median-1.png" style="display: block; margin: auto;" />
+
+``` r
+
+ggsave('figures/din_by_site_median.pdf', device = cairo_pdf, width = 6, height = 4)
+#> Warning: Removed 23 rows containing missing values (geom_segment).
+```
+
+## Combined Graphics
+
+### Combined Dataframe
 
 To facilitate combined plots, we create a data frame with 2018 and 2019
 TN data and 2019 DIN data. For consistency, we keep graphics ordered by
@@ -492,7 +608,7 @@ combo_data <- tmp_din %>%
 rm(tmp_din, tmp_tn)
 ```
 
-### Potential Plot \#1 Points Only
+### Combined Plot \#1 Points Only
 
 ``` r
 plt <- ggplot(combo_data, aes(value, station_name)) +
@@ -506,10 +622,11 @@ plt <- ggplot(combo_data, aes(value, station_name)) +
   
   theme_cbep(base_size = 12) +
   theme(axis.title.x = element_text(size = 10),
+        #axis.text.x= element_text(angle = 90),
         legend.position = 'None',
         panel.grid.major.x = element_line(color = 'gray85'),
           panel.spacing.x = unit(1, 'lines'))  +
-  #scale_x_log10() +
+  #scale_x_continuous(breaks = c(0.32, 0.45)) +
   facet_wrap(~parameter)
 plt
 ```
@@ -520,7 +637,7 @@ plt
 ggsave('figures/n_by_site.pdf', device = cairo_pdf, width = 6, height = 4)
 ```
 
-### Potential Plot \#2 Points with Medians
+### Combined Plot \#2 Points with Medians
 
 ``` r
 plt + 
@@ -553,7 +670,7 @@ ggsave('figures/n_by_site_median.pdf', device = cairo_pdf, width = 6, height = 4
 
 Looks pretty good. The IQR does not add much, so we removed it.
 
-### Potential Plot \#3 Boxplots
+### Combined Plot \#3 Boxplots
 
 Because we are relying here on robust models,
 
