@@ -154,36 +154,37 @@ legend('topright',
 ``` r
 proportion_data <- proportion_data %>%
   mutate(region  = recode_factor(station, 
-                                 "BMR02"  = 'Portland Outer',
-                                 "CMS1"   = 'Inner Bay',
-                                 "EEB18"  = 'Portland Outer',
-                                 "HR1"    = 'Haraseeket',
-                                 "HR2"    = 'Haraseeket',
-                                 "HR3"    = 'Haraseeket',
-                                 "HR4"    = 'Haraseeket',
-                                 "KVL84"  = 'Portland Harbor',
-                                 "MPL86"  = 'Inner Bay',
-                                 "NMM79"  = 'Outer Bay',
-                                 "OBY35"  = 'Outer Bay',
-                                 "P5BSD"  = 'Outer Bay',
-                                 "P6FGG"  = 'Portland Outer',
-                                 "P7CBI"  = 'Inner Bay',
-                                 "PH1"    = 'Portland Harbor',
-                                 "PH2"    = 'Portland Harbor',
-                                 "PH3"    = 'Portland Harbor',
-                                 "PKT42"  = 'Outer Bay',
-                                 "PRV70"  = 'Presumpscot',
-                                 "PYC43"  = 'Inner Bay',
-                                 "RRC46"  = 'Inner Bay',
-                                 "RRY47"  = 'Inner Bay',
-                                 "SMT50"  = 'Portland Outer',
-                                 "STR54"  = 'Portland Harbor'),
-         region = factor(region, levels = c("Portland Harbor",
-                                            "Portland Outer",
-                                            "Haraseeket",
+                                 "BMR02" = "Inner Bay",
+                                 "CMS1"  = "Inner Bay",
+                                 "EEB18" = "Inner Bay",
+                                 "HR1"   = "Harraseeket",
+                                 "HR2"   = "Harraseeket",
+                                 "HR3"   = "Harraseeket",
+                                 "HR4"   = "Harraseeket",
+                                 "KVL84" = "Fore River",
+                                 "MPL86" = "Inner Bay",
+                                 "NMM79" = "New Meadows",
+                                 "OBY35" = "Outer Bay",
+                                 "P5BSD" = "Outer Bay",
+                                 "P6FGG" = "Inner Bay",
+                                 "P7CBI" = "Inner Bay",
+                                 "PH1"   = "Fore River",
+                                 "PH2"   = "Fore River",
+                                 "PH3"   = "Fore River",
+                                 "PKT42" = "Outer Bay",
+                                 "PRV70" = "Presumpscot River",
+                                 "PYC43" = "Inner Bay",
+                                 "RRC46" = "Royal and Cousins Rivers",
+                                 "RRY47" = "Royal and Cousins Rivers",
+                                 "SMT50" = "Inner Bay",
+                                 "STR54" = "Fore River"),
+         region = factor(region, levels = c("Royal and Cousins Rivers",
+                                            "New Meadows",  
+                                            "Presumpscot River",
+                                            "Fore River",
                                             "Inner Bay",
-                                            "Presumpscot",
-                                            "Outer Bay")))
+                                            "Outer Bay"))) %>%
+  arrange(region)
 ```
 
 We use a different color palette that provides more color separation for
@@ -206,20 +207,24 @@ addalpha <- function(colors, alpha=1.0) {
 ```
 
 ``` r
-pal = addalpha(RColorBrewer::brewer.pal(6, 'Set1'), 0.5)
+pal = rev(addalpha(RColorBrewer::brewer.pal(6, 'Set1'), 1))
 
 # Cairo::Cairo(file = 'figures/ternary.png', width = 400, height = 400,
 #       type = 'png',
 #       family = 'Montserrat', pointsize = 9)
 TernaryPlot(alab = 'Nitrate + Nitrite', blab = 'Ammonium', clab = 'Other N',
             grid.lines = 5, grid.minor.lines = 0)
-TernaryPoints(proportion_data[4:6], pch = 16, col = pal[as.numeric(proportion_data$region)])
-legend('top', ncol = 3,
-       cex = .75,
+TernaryPoints(proportion_data[4:6], pch = 16, 
+              col = pal[as.numeric(proportion_data$region)],
+              cex = 0.5)
+legend(x = -.6, y = 1.05, 
+       ncol = 1, bg = NULL,
+       cex = .7,
+       pt.cex = 1,
         legend = levels(proportion_data$region),
         box.lty = 0,
         pch = 20,
-        col = RColorBrewer::brewer.pal(6, 'Set1'))
+        col = pal)
 ```
 
 <img src="FOCB_Nutrients_Ternary_files/figure-gfm/ternary_2-1.png" style="display: block; margin: auto;" />
@@ -238,13 +243,17 @@ cairo_pdf('figures/ternary.pdf', width = 3.5, height = 5,
           family = 'Montserrat', pointsize = 8)
 TernaryPlot(alab = 'Nitrate + Nitrite', blab = 'Ammonium', clab = 'Other N',
             grid.lines = 5, grid.minor.lines = 0)
-TernaryPoints(proportion_data[4:6], pch = 16, col = pal[as.numeric(proportion_data$region)])
-legend('top', ncol = 3,
-       cex = .75,
+TernaryPoints(proportion_data[4:6], pch = 16, 
+              col = pal[as.numeric(proportion_data$region)],
+              cex = 0.5)
+legend(x = -.6, y = 1.05, 
+       ncol = 1, bg = NULL,
+       cex = .7,
+       pt.cex = 1,
         legend = levels(proportion_data$region),
         box.lty = 0,
         pch = 20,
-        col = RColorBrewer::brewer.pal(6, 'Set1'))
+        col = pal)
 dev.off()
 #> png 
 #>   2
