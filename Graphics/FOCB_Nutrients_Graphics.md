@@ -37,11 +37,16 @@ Curtis C. Bohlen, Casco Bay Estuary Partnership.
     -   [Generate Trend Data](#generate-trend-data)
     -   [Restrict Data to Summer
         Months](#restrict-data-to-summer-months)
--   [Trend Graphics](#trend-graphics)
+-   [TN Graphics](#tn-graphics)
+    -   [Create TN Trend Data](#create-tn-trend-data)
+    -   [Showing Annual Medians](#showing-annual-medians)
+    -   [ShowingEstimated Marginal
+        Means](#showingestimated-marginal-means)
+        -   [Linear Model](#linear-model)
+-   [Combined Graphics](#combined-graphics-1)
     -   [Reorganize Data](#reorganize-data)
     -   [Potential Plot \# 1 Facet Grid](#potential-plot--1-facet-grid)
     -   [Potential Plot \# 2 Colors](#potential-plot--2-colors)
-    -   [Potential Plot \# 3 TN Only](#potential-plot--3-tn-only)
 
 <img
     src="https://www.cascobayestuary.org/wp-content/uploads/2014/04/logo_sm.jpg"
@@ -72,7 +77,7 @@ consists of selecting a subset of available data where differences in
 sampling history from site to site and month to month are unlikely to
 bias results in any significant way.
 
-\#Load libraries
+\#Load Libraries
 
 ``` r
 #library(MASS) # for `rlm()` ans `lqs()`for robust regression
@@ -105,9 +110,7 @@ library(mgcv)    # For generalized linear models
 #> 
 #>     collapse
 #> This is mgcv 1.8-36. For overview type 'help("mgcv-package")'.
-#library(mblm)    # for median-based linear models -- suitable for simple robust methods.
-
-#library(Ternary) # Base graphics ternary plots
+library(emmeans)
 
 library(CBEPgraphics)
 load_cbep_fonts()
@@ -546,7 +549,7 @@ Few stations have data from more than a few years. DIN data has been
 collected over the past couple of years, at several stations in the mid
 2000s, and at a handful of stations pretty much every year since 2001.
 Generally the rule we have used to examine trends is to focus on sites
-with relatively complete records, say at least two of the last five
+with relatively complete records, here at least two of the last five
 years and at least ten years total.
 
 ## Identify Trend Stations
@@ -565,10 +568,10 @@ trend_counts <- strict_data %>%
   filter((din_total >= 10 & din_last_5 >= 2) | 
            (tn_total >= 10 & tn_last_5 >= 2))
 
-core_sites <- trend_counts %>%
+trend_sites <- trend_counts %>%
   filter(tn_total > 10) %>%
   pull(station)
-core_sites
+trend_sites
 #> [1] "P5BSD" "P6FGG" "P7CBI" "PKT42" "SMT50"
 rm(trend_counts)
 ```
@@ -577,7 +580,7 @@ rm(trend_counts)
 
 ``` r
 trend_data_prelim <- strict_data %>%
-  filter(station %in% core_sites) %>%
+  filter(station %in% trend_sites) %>%
   filter(!(is.na(din_N) & is.na(tn))) %>%
   mutate(station_name = names_df$Alt_Name[match(station,
                                                 names_df$Station_ID)]) %>%
@@ -596,7 +599,7 @@ with nitrogen levels generally higher in cold season. Since FOCB did not
 sample at consistent times of year across al lyears, different sampling
 histories can generate the spurious appearance of long term trends.
 
-TO avoid that problemn, we restrict attention to just the “warm” months
+To avoid that problem, we restrict attention to just the “warm” months
 from May through October, when FOCB is currently collecting data on a
 consistent basis.
 
@@ -605,10 +608,174 @@ trend_data <- trend_data_prelim %>%
   filter(month %in% month.abb[5:10])
 ```
 
-# Trend Graphics
+# TN Graphics
 
-There are no simple trends in either DIN or TN at the stations with
-robust long-term data records, so we show annual mean / median values.
+## Create TN Trend Data
+
+``` r
+tn_trend <- trend_data %>%
+  mutate(tn = if_else(tn <= 0 | tn >= 1.5, NA_real_, tn)) %>%
+  select(-nox_N, -nh4_N, -organic_N, -din_N) %>%
+  filter(! is.na(tn))
+
+tn_trend_summary  <-   tn_trend %>%
+  select(station_name, year, tn) %>%
+  group_by(station_name, year) %>%
+  summarize(across(tn, 
+                   .fns = list(mn = ~ mean(.x, na.rm = TRUE),
+                               sd = ~ sd(.x, na.rm = TRUE), 
+                               n = ~sum(! is.na(.x)),
+                               md = ~ median(.x, na.rm = TRUE),
+                               iqr = ~ IQR(.x, na.rm = TRUE),
+                               p90 = ~ quantile(.x, .9, na.rm = TRUE),
+                               gm = ~ exp(mean(log(.x), na.rm = TRUE)))),
+            .groups = 'drop') %>%
+  filter(! is.na(tn_md)) %>%
+  mutate(dt = as.Date(paste0('06-15-', year), format = '%m-%d-%Y'))
+```
+
+## Showing Annual Medians
+
+``` r
+plt_2 <- ggplot(tn_trend, aes(dt, tn)) +
+  geom_point( alpha = 0.75, color = cbep_colors()[5]) + 
+   geom_line(data = tn_trend_summary, 
+             mapping = aes(x = dt, y = tn_md), 
+             lwd = 1,
+             color = cbep_colors()[3]) +
+  #geom_smooth(method = 'lm') +
+  #scale_y_log10() +
+  facet_wrap( ~station_name, ncol = 1) +
+
+  theme_cbep(base_size = 12) +
+  theme(legend.position = 'bottom',
+        panel.grid.major.y = element_line(color = 'gray85'),
+        strip.text.y = element_text(size = 9)) +
+  xlab('') +
+  ylab('Total Nitrogen (mg/l)')
+plt_2
+```
+
+<img src="FOCB_Nutrients_Graphics_files/figure-gfm/tn_trend_plot_tall-1.png" style="display: block; margin: auto;" />
+
+``` r
+#ggsave('figures/tn_trend_by_site_tall.pdf', device = cairo_pdf, width = 3, height = 6)
+```
+
+``` r
+plt_2 <- ggplot(tn_trend, aes(dt, tn)) +
+  geom_point(alpha = 0.75, color = cbep_colors()[5]) + 
+   geom_line(data = tn_trend_summary, 
+             mapping = aes(x = dt, y = tn_md), 
+             lwd = 1,
+             color = cbep_colors()[3])+
+  #geom_smooth(method = 'lm') +
+  #scale_y_log10() +
+  facet_wrap( ~station_name, ncol = 6) +
+
+  theme_cbep(base_size = 12) +
+  theme(legend.position = 'bottom',
+        panel.grid.major.y = element_line(color = 'gray85'),
+        strip.text.y = element_text(size = 9)) +
+  xlab('') +
+  ylab('Total Nitrogen (mg/l)')
+plt_2
+```
+
+<img src="FOCB_Nutrients_Graphics_files/figure-gfm/tn_trend_plot_wide-1.png" style="display: block; margin: auto;" />
+
+``` r
+#ggsave('figures/tn_trend_by_site_wide.pdf', device = cairo_pdf, width = 4, height = 7)
+```
+
+## ShowingEstimated Marginal Means
+
+### Linear Model
+
+``` r
+trnd_lm <- lm(log(tn) ~ station_name + station_name:year + month,
+                data = trend_data)
+anova(trnd_lm)
+#> Analysis of Variance Table
+#> 
+#> Response: log(tn)
+#>                    Df  Sum Sq Mean Sq F value    Pr(>F)    
+#> station_name        4  6.2815 1.57037 16.8046 1.689e-12 ***
+#> month               5  1.0103 0.20206  2.1623    0.0581 .  
+#> station_name:year   5  3.3193 0.66386  7.1040 2.592e-06 ***
+#> Residuals         315 29.4363 0.09345                      
+#> ---
+#> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+``` r
+emms_tn <- emmeans(trnd_lm, c('station_name', 'year'), cov.keep = 'year', type = 'response')
+#> NOTE: A nesting structure was detected in the fitted model:
+#>     year %in% station_name
+```
+
+``` r
+emms_df <- as.tibble(emms_tn) %>%
+  mutate(dt  = as.Date(paste0(year, '-06-10')))
+#> Warning: `as.tibble()` was deprecated in tibble 2.0.0.
+#> Please use `as_tibble()` instead.
+#> The signature and semantics have changed, see `?as_tibble`.
+```
+
+We remove the rpedictions for Stations without significant trends.
+
+``` r
+emms_sig_df <-  emms_df %>%
+  filter(station_name %in% c('Broad Sound', 'Clapboard Island',  'Fort Gorges'))
+```
+
+``` r
+ggplot(tn_trend, aes(dt, tn)) +
+  geom_point( color = cbep_colors()[5]) + 
+  geom_line(data = emms_sig_df, 
+            mapping = aes(x = dt, y = response), 
+            lwd = 1,
+            color = cbep_colors()[3]) +
+  scale_y_continuous(trans = 'log1p') +
+  facet_wrap(~station_name, nrow = 5) +
+  theme_cbep(base_size = 12) +
+  theme(legend.position = 'None',
+        panel.grid.major.y = element_line(color = 'gray85'),
+        strip.text.y = element_text(size = 9)) +
+  xlab('') +
+  ylab('Total Nitrogen (mg/l)')
+```
+
+<img src="FOCB_Nutrients_Graphics_files/figure-gfm/core_months_plot_by_date_emms_tall-1.png" style="display: block; margin: auto;" />
+
+``` r
+ggsave('figures/tn_trend_emmeans_tall.pdf', device = cairo_pdf, width = 4, height = 7)
+```
+
+``` r
+ggplot(tn_trend, aes(dt, tn)) +
+  geom_point( color = cbep_colors()[5]) + 
+  geom_line(data = emms_sig_df, 
+            mapping = aes(x = dt, y = response), 
+            lwd = 1,
+            color = cbep_colors()[3]) +
+  scale_y_continuous(trans = 'log1p') +
+  facet_wrap(~station_name, nrow = 1) +
+  theme_cbep(base_size = 12) +
+  theme(legend.position = 'None',
+        panel.grid.major.y = element_line(color = 'gray85'),
+        strip.text.y = element_text(size = 9)) +
+  xlab('') +
+  ylab('Total Nitrogen (mg/l)')
+```
+
+<img src="FOCB_Nutrients_Graphics_files/figure-gfm/core_months_plot_by_date_emms_wide-1.png" style="display: block; margin: auto;" />
+
+``` r
+ggsave('figures/tn_trend_emmeans_wide.pdf', device = cairo_pdf, width = 4, height = 7)
+```
+
+# Combined Graphics
 
 ## Reorganize Data
 
@@ -699,85 +866,4 @@ plt_2
 
 ``` r
 #ggsave('figures/n_trends_by_site_2.pdf', device = cairo_pdf, width = 4, height = 7)
-```
-
-## Potential Plot \# 3 TN Only
-
-``` r
-tn_trend <- trend_data %>%
-  mutate(tn = if_else(tn <= 0 | tn >= 1.5, NA_real_, tn)) %>%
-  select(-nox_N, -nh4_N, -organic_N, -din_N) %>%
-  filter(! is.na(tn))
-  
-
-tn_trend_summary  <-   tn_trend %>%
-  select(station_name, year, tn) %>%
-  group_by(station_name, year) %>%
-  summarize(across(tn, 
-                   .fns = list(mn = ~ mean(.x, na.rm = TRUE),
-                               sd = ~ sd(.x, na.rm = TRUE), 
-                               n = ~sum(! is.na(.x)),
-                               md = ~ median(.x, na.rm = TRUE),
-                               iqr = ~ IQR(.x, na.rm = TRUE),
-                               p90 = ~ quantile(.x, .9, na.rm = TRUE),
-                               gm = ~ exp(mean(log(.x), na.rm = TRUE)))),
-            .groups = 'drop') %>%
-  filter(! is.na(tn_md)) %>%
-  mutate(dt = as.Date(paste0('06-15-', year), format = '%m-%d-%Y'))
-```
-
-``` r
-plt_2 <- ggplot(tn_trend, aes(dt, tn)) +
-  geom_point( alpha = 0.75, color = cbep_colors()[5]) + 
-  # geom_line(data = tn_trend_summary, 
-  #           mapping = aes(x = dt, y = tn_md), 
-  #           lwd = 1,
-  #           color = cbep_colors()[3]) +
-  geom_smooth(method = 'lm') +
-  scale_y_log10() +
-  facet_wrap( ~station_name, ncol = 1) +
-
-  theme_cbep(base_size = 12) +
-  theme(legend.position = 'bottom',
-        panel.grid.major.y = element_line(color = 'gray85'),
-        strip.text.y = element_text(size = 9)) +
-  xlab('') +
-  ylab('Total Nitrogen (mg/l)')
-plt_2
-#> `geom_smooth()` using formula 'y ~ x'
-```
-
-<img src="FOCB_Nutrients_Graphics_files/figure-gfm/tn_trend_plot_tall-1.png" style="display: block; margin: auto;" />
-
-``` r
-ggsave('figures/tn_trend_by_site_tall.pdf', device = cairo_pdf, width = 3, height = 6)
-#> `geom_smooth()` using formula 'y ~ x'
-```
-
-``` r
-plt_2 <- ggplot(tn_trend, aes(dt, tn)) +
-  geom_point(alpha = 0.75, color = cbep_colors()[5]) + 
-  # geom_line(data = tn_trend_summary, 
-  #           mapping = aes(x = dt, y = tn_md), 
-  #           lwd = 1,
-  #           color = cbep_colors()[3])+
-  geom_smooth(method = 'lm') +
-  scale_y_log10() +
-  facet_wrap( ~station_name, ncol = 6) +
-
-  theme_cbep(base_size = 12) +
-  theme(legend.position = 'bottom',
-        panel.grid.major.y = element_line(color = 'gray85'),
-        strip.text.y = element_text(size = 9)) +
-  xlab('') +
-  ylab('Total Nitrogen (mg/l)')
-plt_2
-#> `geom_smooth()` using formula 'y ~ x'
-```
-
-<img src="FOCB_Nutrients_Graphics_files/figure-gfm/tn_trend_plot_wide-1.png" style="display: block; margin: auto;" />
-
-``` r
-ggsave('figures/tn_trend_by_site_wide.pdf', device = cairo_pdf, width = 4, height = 7)
-#> `geom_smooth()` using formula 'y ~ x'
 ```

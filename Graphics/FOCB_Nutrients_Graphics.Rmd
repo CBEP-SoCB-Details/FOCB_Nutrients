@@ -41,7 +41,7 @@ of selecting a subset of available data where differences in sampling history
 from site to site and month to month are unlikely to bias results in any
 significant way.
 
-#Load libraries
+#Load Libraries
 ```{r}
 #library(MASS) # for `rlm()` ans `lqs()`for robust regression
               # also `cov.rob()` for robust multivariate scatter and covariance.
@@ -54,9 +54,7 @@ library(readxl)
 library(tidyverse)
 
 library(mgcv)    # For generalized linear models
-#library(mblm)    # for median-based linear models -- suitable for simple robust methods.
-
-#library(Ternary) # Base graphics ternary plots
+library(emmeans)
 
 library(CBEPgraphics)
 load_cbep_fonts()
@@ -407,8 +405,7 @@ Few stations have data from more than a few years.  DIN data has been collected
 over the past couple of years, at several stations in the mid 2000s, and at a
 handful of stations pretty much every year since 2001.  Generally the rule we 
 have used to examine trends is to focus on sites with relatively complete 
-records, say at least two of the last five years and at least
-ten years total.
+records, here at least two of the last five years and at least ten years total.
 
 ## Identify Trend Stations
 ```{r which_stations}
@@ -425,17 +422,17 @@ trend_counts <- strict_data %>%
   filter((din_total >= 10 & din_last_5 >= 2) | 
            (tn_total >= 10 & tn_last_5 >= 2))
 
-core_sites <- trend_counts %>%
+trend_sites <- trend_counts %>%
   filter(tn_total > 10) %>%
   pull(station)
-core_sites
+trend_sites
 rm(trend_counts)
 ```
 
 ## Generate Trend Data
 ```{r make_trend_data_prelim}
 trend_data_prelim <- strict_data %>%
-  filter(station %in% core_sites) %>%
+  filter(station %in% trend_sites) %>%
   filter(!(is.na(din_N) & is.na(tn))) %>%
   mutate(station_name = names_df$Alt_Name[match(station,
                                                 names_df$Station_ID)]) %>%
@@ -447,14 +444,13 @@ trend_data_prelim <- strict_data %>%
   select(- din_depth, -tn_depth, -c(nox:din))
 ```
 
-
 ## Restrict Data to Summer Months
 Analysis showed that sampling at different times of year biased results, with 
 nitrogen levels generally higher in cold season.  Since FOCB did not sample
 at consistent times of year across al lyears, different sampling histories
 can generate the spurious appearance of long term trends.
 
-TO avoid that problemn, we restrict attention to just the "warm" months from
+To avoid that problem, we restrict attention to just the "warm" months from
 May through October, when FOCB is currently collecting data on a consistent 
 basis.
 ```{r restrict_to_summer}
@@ -462,10 +458,134 @@ trend_data <- trend_data_prelim %>%
   filter(month %in% month.abb[5:10])
 ```
 
-# Trend Graphics
-There are no simple trends in either DIN or TN at the stations with robust 
-long-term data records, so we show annual mean / median values.
+# TN Graphics
+## Create TN Trend Data
+```{r create_tn_trend_data}
+tn_trend <- trend_data %>%
+  mutate(tn = if_else(tn <= 0 | tn >= 1.5, NA_real_, tn)) %>%
+  select(-nox_N, -nh4_N, -organic_N, -din_N) %>%
+  filter(! is.na(tn))
 
+tn_trend_summary  <-   tn_trend %>%
+  select(station_name, year, tn) %>%
+  group_by(station_name, year) %>%
+  summarize(across(tn, 
+                   .fns = list(mn = ~ mean(.x, na.rm = TRUE),
+                               sd = ~ sd(.x, na.rm = TRUE), 
+                               n = ~sum(! is.na(.x)),
+                               md = ~ median(.x, na.rm = TRUE),
+                               iqr = ~ IQR(.x, na.rm = TRUE),
+                               p90 = ~ quantile(.x, .9, na.rm = TRUE),
+                               gm = ~ exp(mean(log(.x), na.rm = TRUE)))),
+            .groups = 'drop') %>%
+  filter(! is.na(tn_md)) %>%
+  mutate(dt = as.Date(paste0('06-15-', year), format = '%m-%d-%Y'))
+```
+
+## Showing Annual Medians
+```{r tn_trend_plot_tall, fig.width = 3, fig.height = 6}
+plt_2 <- ggplot(tn_trend, aes(dt, tn)) +
+  geom_point( alpha = 0.75, color = cbep_colors()[5]) + 
+   geom_line(data = tn_trend_summary, 
+             mapping = aes(x = dt, y = tn_md), 
+             lwd = 1,
+             color = cbep_colors()[3]) +
+  #geom_smooth(method = 'lm') +
+  #scale_y_log10() +
+  facet_wrap( ~station_name, ncol = 1) +
+
+  theme_cbep(base_size = 12) +
+  theme(legend.position = 'bottom',
+        panel.grid.major.y = element_line(color = 'gray85'),
+        strip.text.y = element_text(size = 9)) +
+  xlab('') +
+  ylab('Total Nitrogen (mg/l)')
+plt_2
+#ggsave('figures/tn_trend_by_site_tall.pdf', device = cairo_pdf, width = 3, height = 6)
+```
+
+```{r tn_trend_plot_wide, fig.width = 8, fig.height = 2.5}
+plt_2 <- ggplot(tn_trend, aes(dt, tn)) +
+  geom_point(alpha = 0.75, color = cbep_colors()[5]) + 
+   geom_line(data = tn_trend_summary, 
+             mapping = aes(x = dt, y = tn_md), 
+             lwd = 1,
+             color = cbep_colors()[3])+
+  #geom_smooth(method = 'lm') +
+  #scale_y_log10() +
+  facet_wrap( ~station_name, ncol = 6) +
+
+  theme_cbep(base_size = 12) +
+  theme(legend.position = 'bottom',
+        panel.grid.major.y = element_line(color = 'gray85'),
+        strip.text.y = element_text(size = 9)) +
+  xlab('') +
+  ylab('Total Nitrogen (mg/l)')
+plt_2
+#ggsave('figures/tn_trend_by_site_wide.pdf', device = cairo_pdf, width = 4, height = 7)
+```
+
+## ShowingEstimated Marginal Means
+### Linear Model
+```{r trend_lm_1}
+trnd_lm <- lm(log(tn) ~ station_name + station_name:year + month,
+                data = trend_data)
+anova(trnd_lm)
+```
+```{r}
+emms_tn <- emmeans(trnd_lm, c('station_name', 'year'), cov.keep = 'year', type = 'response')
+```
+
+```{r}
+emms_df <- as.tibble(emms_tn) %>%
+  mutate(dt  = as.Date(paste0(year, '-06-10')))
+```
+
+We remove the rpedictions for Stations without significant trends.
+```{r}
+emms_sig_df <-  emms_df %>%
+  filter(station_name %in% c('Broad Sound', 'Clapboard Island',  'Fort Gorges'))
+```
+
+```{r core_months_plot_by_date_emms_tall, fig.height = 6, fig.width = 3}
+ggplot(tn_trend, aes(dt, tn)) +
+  geom_point( color = cbep_colors()[5]) + 
+  geom_line(data = emms_sig_df, 
+            mapping = aes(x = dt, y = response), 
+            lwd = 1,
+            color = cbep_colors()[3]) +
+  scale_y_continuous(trans = 'log1p') +
+  facet_wrap(~station_name, nrow = 5) +
+  theme_cbep(base_size = 12) +
+  theme(legend.position = 'None',
+        panel.grid.major.y = element_line(color = 'gray85'),
+        strip.text.y = element_text(size = 9)) +
+  xlab('') +
+  ylab('Total Nitrogen (mg/l)')
+
+ggsave('figures/tn_trend_emmeans_tall.pdf', device = cairo_pdf, width = 4, height = 7)
+```
+
+```{r core_months_plot_by_date_emms_wide, fig.height = 2.5, fig.width = 8}
+ggplot(tn_trend, aes(dt, tn)) +
+  geom_point( color = cbep_colors()[5]) + 
+  geom_line(data = emms_sig_df, 
+            mapping = aes(x = dt, y = response), 
+            lwd = 1,
+            color = cbep_colors()[3]) +
+  scale_y_continuous(trans = 'log1p') +
+  facet_wrap(~station_name, nrow = 1) +
+  theme_cbep(base_size = 12) +
+  theme(legend.position = 'None',
+        panel.grid.major.y = element_line(color = 'gray85'),
+        strip.text.y = element_text(size = 9)) +
+  xlab('') +
+  ylab('Total Nitrogen (mg/l)')
+ggsave('figures/tn_trend_emmeans_wide.pdf', device = cairo_pdf, width = 4, height = 7)
+```
+
+
+# Combined Graphics
 ## Reorganize Data
 First, we pivot the trend data to long form.
 ```{r pivot_longer}
@@ -539,73 +659,4 @@ plt_2 <- ggplot(combo_trend) +
   ylab('Nitrogen (mg/l)')
 plt_2
 #ggsave('figures/n_trends_by_site_2.pdf', device = cairo_pdf, width = 4, height = 7)
-```
-
-
-
-## Potential Plot # 3 TN Only
-```{r create_tn_trend_data}
-tn_trend <- trend_data %>%
-  mutate(tn = if_else(tn <= 0 | tn >= 1.5, NA_real_, tn)) %>%
-  select(-nox_N, -nh4_N, -organic_N, -din_N) %>%
-  filter(! is.na(tn))
-  
-
-tn_trend_summary  <-   tn_trend %>%
-  select(station_name, year, tn) %>%
-  group_by(station_name, year) %>%
-  summarize(across(tn, 
-                   .fns = list(mn = ~ mean(.x, na.rm = TRUE),
-                               sd = ~ sd(.x, na.rm = TRUE), 
-                               n = ~sum(! is.na(.x)),
-                               md = ~ median(.x, na.rm = TRUE),
-                               iqr = ~ IQR(.x, na.rm = TRUE),
-                               p90 = ~ quantile(.x, .9, na.rm = TRUE),
-                               gm = ~ exp(mean(log(.x), na.rm = TRUE)))),
-            .groups = 'drop') %>%
-  filter(! is.na(tn_md)) %>%
-  mutate(dt = as.Date(paste0('06-15-', year), format = '%m-%d-%Y'))
-```
-
-
-```{r tn_trend_plot_tall, fig.width = 3, fig.height = 6}
-plt_2 <- ggplot(tn_trend, aes(dt, tn)) +
-  geom_point( alpha = 0.75, color = cbep_colors()[5]) + 
-  # geom_line(data = tn_trend_summary, 
-  #           mapping = aes(x = dt, y = tn_md), 
-  #           lwd = 1,
-  #           color = cbep_colors()[3]) +
-  geom_smooth(method = 'lm') +
-  scale_y_log10() +
-  facet_wrap( ~station_name, ncol = 1) +
-
-  theme_cbep(base_size = 12) +
-  theme(legend.position = 'bottom',
-        panel.grid.major.y = element_line(color = 'gray85'),
-        strip.text.y = element_text(size = 9)) +
-  xlab('') +
-  ylab('Total Nitrogen (mg/l)')
-plt_2
-ggsave('figures/tn_trend_by_site_tall.pdf', device = cairo_pdf, width = 3, height = 6)
-```
-
-```{r tn_trend_plot_wide, fig.width = 8, fig.height = 2.5}
-plt_2 <- ggplot(tn_trend, aes(dt, tn)) +
-  geom_point(alpha = 0.75, color = cbep_colors()[5]) + 
-  # geom_line(data = tn_trend_summary, 
-  #           mapping = aes(x = dt, y = tn_md), 
-  #           lwd = 1,
-  #           color = cbep_colors()[3])+
-  geom_smooth(method = 'lm') +
-  scale_y_log10() +
-  facet_wrap( ~station_name, ncol = 6) +
-
-  theme_cbep(base_size = 12) +
-  theme(legend.position = 'bottom',
-        panel.grid.major.y = element_line(color = 'gray85'),
-        strip.text.y = element_text(size = 9)) +
-  xlab('') +
-  ylab('Total Nitrogen (mg/l)')
-plt_2
-ggsave('figures/tn_trend_by_site_wide.pdf', device = cairo_pdf, width = 4, height = 7)
 ```
