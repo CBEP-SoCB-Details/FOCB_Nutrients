@@ -212,6 +212,7 @@ pal = rev(addalpha(RColorBrewer::brewer.pal(6, 'Set1'), 1))
 # Cairo::Cairo(file = 'figures/ternary.png', width = 400, height = 400,
 #       type = 'png',
 #       family = 'Montserrat', pointsize = 9)
+
 TernaryPlot(alab = 'Nitrate + Nitrite', blab = 'Ammonium', clab = 'Other N',
             grid.lines = 5, grid.minor.lines = 0)
 TernaryPoints(proportion_data[4:6], pch = 16, 
@@ -286,6 +287,7 @@ TernaryPoints(sum_p_data[2:4])
 
 ``` r
 TernaryPlot(alab = 'Nitrate + Nitrite', blab = 'Ammonium', clab = 'Other N',
+
             grid.lines = 5, grid.minor.lines = 0,
             xlim = c(-0.5, -0.25), ylim  = c(0, .25))
 #TernaryPoints(sum_p_data[2:4])
