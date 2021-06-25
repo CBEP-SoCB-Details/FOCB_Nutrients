@@ -45,20 +45,6 @@ Curtis C. Bohlen, Casco Bay Estuary Partnership.
         -   [Potential Plot \#5 Boxplots with Marginal
             Means](#potential-plot-5-boxplots-with-marginal-means)
         -   [Potential Plot \#6 Violins](#potential-plot-6-violins)
--   [Trend Analysis](#trend-analysis)
-    -   [Identify Trend Stations](#identify-trend-stations)
-    -   [Generate Trend Data](#generate-trend-data)
-        -   [Data Distribution](#data-distribution)
-        -   [Data Prevalence](#data-prevalence-1)
-    -   [Generate Core Months Trend
-        Data](#generate-core-months-trend-data)
-    -   [Models](#models)
-        -   [Initial Linear Model](#initial-linear-model)
-        -   [Check for Non-linear
-            Patterns](#check-for-non-linear-patterns)
-    -   [Graphics Ideas](#graphics-ideas)
-        -   [Jitter Plot By Year](#jitter-plot-by-year)
-        -   [Actual Dates](#actual-dates)
 
 <img
     src="https://www.cascobayestuary.org/wp-content/uploads/2014/04/logo_sm.jpg"
@@ -222,7 +208,7 @@ ggplot(strict_data , aes(tn)) +
 #> Warning: Removed 2413 rows containing non-finite values (stat_bin).
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/tn)hist-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/tn)hist-1.png" style="display: block; margin: auto;" />
 
 ### Outliers Or Errors?
 
@@ -304,7 +290,7 @@ ggplot(strict_data , aes(log(tn))) +
 #> Warning: Removed 2414 rows containing non-finite values (stat_density).
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/facet_tn_dentities-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/facet_tn_dentities-1.png" style="display: block; margin: auto;" />
 
 ## Cross- Plot DIN by TN
 
@@ -320,7 +306,7 @@ ggplot(strict_data, aes(tn, din_N)) +
 #> Warning: Removed 2657 rows containing missing values (geom_point).
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/tn_din_plot_ammonium_strict-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/tn_din_plot_ammonium_strict-1.png" style="display: block; margin: auto;" />
 \# Recent Conditions Recent conditions include data from 2015 through
 2019.
 
@@ -365,7 +351,7 @@ ggplot(recent_data, aes(station, tn)) +
 #> Warning: Transformation introduced infinite values in continuous y-axis
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/plot_outliers-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/plot_outliers-1.png" style="display: block; margin: auto;" />
 
 We also have one “zero” values in the recent TN data, so log transforms
 are problematic.
@@ -505,7 +491,7 @@ ggplot(recent_data , aes(tn)) +
 #> `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/tn_hist-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/tn_hist-1.png" style="display: block; margin: auto;" />
 
 A straight log transform helps a lot. But note that two or possibly even
 four extreme values still stand out.
@@ -519,7 +505,7 @@ ggplot(recent_data , aes(tn)) +
 #> Warning: Removed 1 rows containing non-finite values (stat_bin).
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/tn_log_hist-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/tn_log_hist-1.png" style="display: block; margin: auto;" />
 
 ## All Data
 
@@ -616,7 +602,7 @@ plot(full_tn_lm_draft)
 #>   13
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/draft_tn_lm_diagnostics-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/draft_tn_lm_diagnostics-1.png" style="display: block; margin: auto;" />
 
 ``` r
 par(oldpar)
@@ -727,7 +713,7 @@ plot(tn_lm)
 #> Warning in sqrt(crit * p * (1 - hh)/hh): NaNs produced
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/tn_lm_diagnostics-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/tn_lm_diagnostics-1.png" style="display: block; margin: auto;" />
 
 ``` r
 par(oldpar)
@@ -764,7 +750,7 @@ plot(tn_emms_lm) + coord_flip() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.25, hjust = 1))
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/tn_lm_marginals-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/tn_lm_marginals-1.png" style="display: block; margin: auto;" />
 
 ### Robust Linear Models
 
@@ -853,7 +839,7 @@ plot(tn_emms_rlm) + coord_flip() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.25, hjust = 1))
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/tn_rlm_marginals-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/tn_rlm_marginals-1.png" style="display: block; margin: auto;" />
 
 ``` r
 tn_emms_lm <- as_tibble(tn_emms_lm)
@@ -891,7 +877,7 @@ of less importance.
 plot(tn_gam_draft)
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/view_tn_gam-1.png" style="display: block; margin: auto;" /><img src="FOCB_TN_Analysis_files/figure-gfm/view_tn_gam-2.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/view_tn_gam-1.png" style="display: block; margin: auto;" /><img src="FOCB_TN_Recent_Analysis_files/figure-gfm/view_tn_gam-2.png" style="display: block; margin: auto;" />
 We explored several different smoother specifications. The default
 smoother (shown) fits a wiggly day of year curve with effective degrees
 of freedom close to 7 that is probably not reasonable for representing a
@@ -940,7 +926,7 @@ factor.
 plot(tn_gam)
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/view_smaller_tn_gam-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/view_smaller_tn_gam-1.png" style="display: block; margin: auto;" />
 
 Note that differences between years are substantial. Year 2016 was
 especially distinct. Weather in 2016 was unusual in many ways.
@@ -949,7 +935,7 @@ especially distinct. Weather in 2016 was unusual in many ways.
 gam.check(tn_gam)
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/smaller_tn_gam_diagnostics-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/smaller_tn_gam_diagnostics-1.png" style="display: block; margin: auto;" />
 
     #> 
     #> Method: GCV   Optimizer: magic
@@ -976,7 +962,7 @@ plot(tn_emms_gam) + coord_flip() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.25))
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/tn_gam_marginals-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/tn_gam_marginals-1.png" style="display: block; margin: auto;" />
 
 ``` r
 tn_emms_gam <- as_tibble(tn_emms_gam)
@@ -1011,7 +997,7 @@ ggplot(compare, aes(tn_mn, response)) +
   scale_y_log10()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/compare_lm-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/compare_lm-1.png" style="display: block; margin: auto;" />
 The log linear model generally fits means slightly higher than observed.
 
 ##### Robust Log Linear Model
@@ -1035,7 +1021,7 @@ ggplot(compare, aes(tn_mn, response)) +
   scale_y_log10()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/compare_rlm-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/compare_rlm-1.png" style="display: block; margin: auto;" />
 Results of the robust model are very similar.
 
 ##### GAM Model
@@ -1059,7 +1045,7 @@ ggplot(compare, aes(tn_mn, response)) +
   scale_y_log10()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/compare_gam-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/compare_gam-1.png" style="display: block; margin: auto;" />
 The GAM also provides similar results. The primary effect of using any
 of these models to provide estimates of typical site conditions is that
 by pooling errors, we end up with lower estimates of error at sites with
@@ -1083,7 +1069,7 @@ ggplot(compare, aes(response.lm, response.rlm)) +
   scale_y_log10()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/compare_mods-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/compare_mods-1.png" style="display: block; margin: auto;" />
 
 #### Compare GAM Model and Robust Model
 
@@ -1102,7 +1088,7 @@ ggplot(compare, aes(response.gam, response.rlm)) +
   scale_y_log10()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/compare_gam_mod-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/compare_gam_mod-1.png" style="display: block; margin: auto;" />
 We see high correlation. The choice of model here can make little
 difference in interpretation of results. The rough rank order of sites
 and general estimates of precision for each model are similar.
@@ -1116,7 +1102,7 @@ tn_emms_months <- emmeans(tn_lm, 'month', type = 'response')
 plot(tn_emms_months) + coord_flip()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/month_emms_lm-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/month_emms_lm-1.png" style="display: block; margin: auto;" />
 
 #### From Robust Linear Model
 
@@ -1125,7 +1111,7 @@ tn_emms_months <- emmeans(tn_rlm, 'month', type = 'response')
 plot(tn_emms_months) + coord_flip()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/month_emms_rlm-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/month_emms_rlm-1.png" style="display: block; margin: auto;" />
 TN is generally higher in colder months, mirroring results for DIN.
 
 Winter month forecasts are quite different for the linear model and the
@@ -1196,7 +1182,7 @@ oldpar <- par(mfrow = c(2,2))
 plot(tn_lm_18_19)
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/lm_18_19_diagnostics-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/lm_18_19_diagnostics-1.png" style="display: block; margin: auto;" />
 
 ``` r
 par(oldpar)
@@ -1219,7 +1205,7 @@ oldpar <- par(mfrow = c(2,2))
 plot(tn_lm_18_19)
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/lm_18_19_red_diagnostics-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/lm_18_19_red_diagnostics-1.png" style="display: block; margin: auto;" />
 
 ``` r
 par(oldpar)
@@ -1233,7 +1219,7 @@ plot(tn_emms_lm_18_19) + coord_flip() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.25, hjust = 1))
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/lm_18_19_marginals-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/lm_18_19_marginals-1.png" style="display: block; margin: auto;" />
 
 #### Robust Linear Models
 
@@ -1282,7 +1268,7 @@ plot(tn_emms_rlm_18_19) + coord_flip() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.25, hjust = 1))
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/rlm_18_19_marginals-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/rlm_18_19_marginals-1.png" style="display: block; margin: auto;" />
 
 The robust model generally provides slightly narrower error bands, but
 the patterns are similar.
@@ -1323,7 +1309,7 @@ anova(tn_gam_18_19_draft)
 plot(tn_gam_18_19_draft)
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/view_gam_18_19_draft-1.png" style="display: block; margin: auto;" /><img src="FOCB_TN_Analysis_files/figure-gfm/view_gam_18_19_draft-2.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/view_gam_18_19_draft-1.png" style="display: block; margin: auto;" /><img src="FOCB_TN_Recent_Analysis_files/figure-gfm/view_gam_18_19_draft-2.png" style="display: block; margin: auto;" />
 We explored several different smoother specifications. The default
 smoother (shown) fits a wiggly day of year curve with effective degrees
 of freedom close to 8 that is not reasonable for representing a seasonal
@@ -1364,7 +1350,7 @@ the DOY term. We retain a reduced dimensionality smoother.
 gam.check(tn_gam_18_19)
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/gam_18_19_diagnostics-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/gam_18_19_diagnostics-1.png" style="display: block; margin: auto;" />
 
     #> 
     #> Method: GCV   Optimizer: magic
@@ -1389,7 +1375,7 @@ plot(tn_emms_gam_18_19) + coord_flip() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.25))
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/gam_18_19_marginals-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/gam_18_19_marginals-1.png" style="display: block; margin: auto;" />
 
 ``` r
 tn_emms_gam_18_19 <- as_tibble(tn_emms_gam_18_19)
@@ -1420,7 +1406,7 @@ ggplot(compare, aes(tn_mn, response)) +
   scale_y_log10()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/compare_18_19_lm-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/compare_18_19_lm-1.png" style="display: block; margin: auto;" />
 The log linear model generally fits very close to observed.
 
 ##### Robust Log Linear Model
@@ -1444,7 +1430,7 @@ ggplot(compare, aes(tn_mn, response)) +
   scale_y_log10()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/compare_18_19_rlm-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/compare_18_19_rlm-1.png" style="display: block; margin: auto;" />
 
 The Robust model generally predicts slightly lower values.
 
@@ -1469,7 +1455,7 @@ ggplot(compare, aes(tn_mn, response)) +
   scale_y_log10()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/compare_18_19_gam-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/compare_18_19_gam-1.png" style="display: block; margin: auto;" />
 
 #### Compare Log Linear and Robust Log Linear Models
 
@@ -1486,7 +1472,7 @@ ggplot(compare, aes(response.lm, response.rlm)) +
   coord_equal()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/compare_18_19_mods-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/compare_18_19_mods-1.png" style="display: block; margin: auto;" />
 
 #### Compare GAM Model and Robust Model
 
@@ -1503,7 +1489,7 @@ ggplot(compare, aes(response.gam, response.rlm)) +
   coord_equal()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/compare_18_19_gam_to_RLM-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/compare_18_19_gam_to_RLM-1.png" style="display: block; margin: auto;" />
 We see high correlation.
 
 ## Conclusions
@@ -1541,7 +1527,7 @@ ggplot(recent_data, aes(tn, station_name)) +
   scale_x_log10()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/plot_1-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/plot_1-1.png" style="display: block; margin: auto;" />
 
 ### Potential Plot \#2 Points with Medians and IQR
 
@@ -1564,7 +1550,7 @@ ggplot(recent_data, aes(tn, station_name)) +
   scale_x_log10()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/plot_2-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/plot_2-1.png" style="display: block; margin: auto;" />
 
 Looks pretty good. The IQR does not add much.
 
@@ -1588,7 +1574,7 @@ ggplot(recent_data, aes(tn, station_name)) +
   scale_x_log10()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/plot_3-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/plot_3-1.png" style="display: block; margin: auto;" />
 
 ### Potential Plot \#4 Marginal Means Compared with Observations
 
@@ -1623,7 +1609,7 @@ ggplot(tn_emms_gam, aes(response, station_name)) +
   scale_x_log10()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/plot_4-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/plot_4-1.png" style="display: block; margin: auto;" />
 
 Visually, this is a nice design, but the difference between observed and
 modeled measures of location are visually jarring. It may work better
@@ -1649,7 +1635,7 @@ with the recent data.
   scale_x_log10()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/plot_5-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/plot_5-1.png" style="display: block; margin: auto;" />
 
 ### Potential Plot \#6 Violins
 
@@ -1670,312 +1656,5 @@ ggplot(recent_data, aes(tn, station_name)) +
   scale_x_log10()
 ```
 
-<img src="FOCB_TN_Analysis_files/figure-gfm/plot_6-1.png" style="display: block; margin: auto;" />
+<img src="FOCB_TN_Recent_Analysis_files/figure-gfm/plot_6-1.png" style="display: block; margin: auto;" />
 That’s overdone….
-
-# Trend Analysis
-
-Few stations have data from more than a few years. TN data has been
-collected over the past couple of years, at several stations in the mid
-2000s, and at a handful of stations pretty much every year since 2001.
-Generally the rule we have used to examine trends is to focus on sites
-with relatively complete records, say at least two of the last five
-years and at least ten years total.
-
-## Identify Trend Stations
-
-``` r
-trend_sites <- strict_data %>%
-  group_by(station, year) %>%
-  summarize(was_sampled =  ! all(is.na(tn)),
-            .groups = 'drop_last') %>%
-  summarize(last_5 = sum(was_sampled & year > 2014),
-            total = sum(was_sampled),
-            .groups = 'drop') %>%
-  filter(total >= 10, last_5 >= 2) %>%
-  pull(station)
-trend_sites
-#> [1] "P5BSD" "P6FGG" "P7CBI" "PKT42" "SMT50"
-```
-
-## Generate Trend Data
-
-Note that we remove the extreme values here.
-
-``` r
-trend_data <- strict_data %>%
-   filter(station %in% trend_sites) %>%
-   filter(! is.na(tn)) %>%
-   filter(tn < 1.5) %>%
-   mutate(station_name = names_df$Alt_Name[match(station,
-                                                names_df$Station_ID)]) %>%
-   mutate(station = factor(station),
-          station_name = factor(station_name)) %>%
-   mutate(station = fct_reorder(station, tn, na.rm = TRUE),
-         station_name = fct_reorder(station_name, tn, na.rm = TRUE)) %>%
-   relocate(station_name, .after = station) %>%
-   select(-contains('n_N', ignore.case = FALSE), -contains('depth'), -organic_N)
-```
-
-### Data Distribution
-
-``` r
-ggplot(trend_data, aes(tn)) +
-  geom_histogram()
-#> `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-```
-
-<img src="FOCB_TN_Analysis_files/figure-gfm/trend_data_histogram-1.png" style="display: block; margin: auto;" />
-
-### Data Prevalence
-
-``` r
-xtabs(~ month + station, data = trend_data )%>%
-  as_tibble() %>%
-  mutate(month = factor(month, levels = month.abb)) %>%
-  filter(n>0) %>%
-
-  ggplot(aes(station, month, fill = sqrt(n))) +
-  geom_tile() +
-  theme_cbep(base_size = 12) +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .25))
-```
-
-<img src="FOCB_TN_Analysis_files/figure-gfm/trend_data_months-1.png" style="display: block; margin: auto;" />
-
-``` r
-xtabs(~ year + station, data = trend_data) %>%
-  as_tibble() %>% 
-  filter(n>0) %>%
-
-  ggplot(aes(station, year, fill = sqrt(n))) +
-  geom_tile() +
-  theme_cbep(base_size = 12) +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .25))
-```
-
-<img src="FOCB_TN_Analysis_files/figure-gfm/trend_data_years-1.png" style="display: block; margin: auto;" />
-
-``` r
-xtabs(~ year + month, data = trend_data) %>%
-  as_tibble() %>% 
-  mutate(month = factor(month, levels = month.abb))  %>%
-  filter(n>0) %>%
-
-  ggplot(aes(month, year, fill = sqrt(n))) +
-  geom_tile() +
-  theme_cbep(base_size = 12) +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .25))
-```
-
-<img src="FOCB_TN_Analysis_files/figure-gfm/trend_data_times-1.png" style="display: block; margin: auto;" />
-
-We see the change if FOCB monitoring practices in 2017. Winter data is
-not available in recent\_years. If there are seasonal TN trends, annual
-averages may be biased.
-
-## Generate Core Months Trend Data
-
-``` r
-core_months_data <- trend_data %>%
-  filter(month %in% month.abb[5:10])
-```
-
-## Models
-
-### Initial Linear Model
-
-Note that in this setting, there is no reason to believe all stations
-show the same trend, so a model that does not fit an interaction term
-(station x year) is of limited value. The exception may be use of
-hierarchical model that treats sites as random factors.
-
-``` r
-trnd_lm_1 <- lm(log1p(tn) ~ (year + station + month)^2 , 
-                data = core_months_data)
-anova(trnd_lm_1)
-#> Analysis of Variance Table
-#> 
-#> Response: log1p(tn)
-#>                Df  Sum Sq  Mean Sq F value    Pr(>F)    
-#> year            1 0.22807 0.228066 45.6887 7.650e-11 ***
-#> station         4 0.19198 0.047996  9.6151 2.594e-07 ***
-#> month           5 0.04190 0.008380  1.6788    0.1396    
-#> year:station    4 0.02330 0.005824  1.1668    0.3256    
-#> year:month      5 0.04115 0.008230  1.6487    0.1471    
-#> station:month  20 0.04950 0.002475  0.4958    0.9672    
-#> Residuals     289 1.44261 0.004992                      
-#> ---
-#> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-```
-
-``` r
-trnd_lm_2 <- step(trnd_lm_1)
-#> Start:  AIC=-1706.34
-#> log1p(tn) ~ (year + station + month)^2
-#> 
-#>                 Df Sum of Sq    RSS     AIC
-#> - station:month 20  0.049502 1.4921 -1735.2
-#> - year:station   4  0.025705 1.4683 -1708.5
-#> <none>                       1.4426 -1706.3
-#> - year:month     5  0.045509 1.4881 -1706.1
-#> 
-#> Step:  AIC=-1735.24
-#> log1p(tn) ~ year + station + month + year:station + year:month
-#> 
-#>                Df Sum of Sq    RSS     AIC
-#> - year:station  4  0.023403 1.5155 -1738.1
-#> - year:month    5  0.041149 1.5333 -1736.3
-#> <none>                      1.4921 -1735.2
-#> 
-#> Step:  AIC=-1738.12
-#> log1p(tn) ~ year + station + month + year:month
-#> 
-#>              Df Sum of Sq    RSS     AIC
-#> - year:month  5  0.041044 1.5566 -1739.3
-#> <none>                    1.5155 -1738.1
-#> - station     4  0.182506 1.6980 -1708.7
-#> 
-#> Step:  AIC=-1739.33
-#> log1p(tn) ~ year + station + month
-#> 
-#>           Df Sum of Sq    RSS     AIC
-#> - month    5   0.04190 1.5985 -1740.6
-#> <none>                 1.5566 -1739.3
-#> - year     1   0.13304 1.6896 -1714.3
-#> - station  4   0.18734 1.7439 -1709.9
-#> 
-#> Step:  AIC=-1740.59
-#> log1p(tn) ~ year + station
-#> 
-#>           Df Sum of Sq    RSS     AIC
-#> <none>                 1.5985 -1740.6
-#> - year     1   0.13206 1.7305 -1716.5
-#> - station  4   0.19198 1.7904 -1711.3
-```
-
-``` r
-anova(trnd_lm_2)
-#> Analysis of Variance Table
-#> 
-#> Response: log1p(tn)
-#>            Df  Sum Sq  Mean Sq F value    Pr(>F)    
-#> year        1 0.22807 0.228066 46.0851 5.434e-11 ***
-#> station     4 0.19198 0.047996  9.6985 2.030e-07 ***
-#> Residuals 323 1.59846 0.004949                      
-#> ---
-#> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-```
-
-``` r
-summary(trnd_lm_2)
-#> 
-#> Call:
-#> lm(formula = log1p(tn) ~ year + station, data = core_months_data)
-#> 
-#> Residuals:
-#>      Min       1Q   Median       3Q      Max 
-#> -0.16995 -0.04534 -0.01454  0.03321  0.30266 
-#> 
-#> Coefficients:
-#>                Estimate Std. Error t value Pr(>|t|)    
-#> (Intercept)  10.3674203  1.9630094   5.281 2.36e-07 ***
-#> year         -0.0050377  0.0009752  -5.166 4.20e-07 ***
-#> stationP7CBI  0.0046630  0.0125852   0.371   0.7112    
-#> stationPKT42  0.0280859  0.0141229   1.989   0.0476 *  
-#> stationP6FGG  0.0314968  0.0124374   2.532   0.0118 *  
-#> stationSMT50  0.0628016  0.0115876   5.420 1.17e-07 ***
-#> ---
-#> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-#> 
-#> Residual standard error: 0.07035 on 323 degrees of freedom
-#> Multiple R-squared:  0.2081, Adjusted R-squared:  0.1958 
-#> F-statistic: 16.98 on 5 and 323 DF,  p-value: 6.631e-15
-```
-
-So the obvious linear model analysis suggests there is a weak negative
-linear trend, and there are no differences in trend among stations.
-
-``` r
-oldpar <- par(mfrow=c(2,2))
-plot(trnd_lm_2)
-```
-
-<img src="FOCB_TN_Analysis_files/figure-gfm/trend_lm_2_diagnostics-1.png" style="display: block; margin: auto;" />
-
-``` r
-par(oldpar)
-```
-
-Other than the heavy tails and slight skewness of the residuals, model
-diagnostics are pretty good, suggesting these conclusions will be robust
-to most other reasonable model specifications.
-
-### Check for Non-linear Patterns
-
-We start by fitting a polynomial
-
-``` r
-trnd_lm_3 <- lm(log1p(tn) ~ poly(year,2) + poly(year,2):station + 
-                                month + month:year, data = core_months_data)
-anova(trnd_lm_3)
-#> Analysis of Variance Table
-#> 
-#> Response: log1p(tn)
-#>                        Df  Sum Sq  Mean Sq F value    Pr(>F)    
-#> poly(year, 2)           2 0.23128 0.115640 21.4779 1.853e-09 ***
-#> month                   5 0.04910 0.009821  1.8241    0.1078    
-#> poly(year, 2):station   8 0.03530 0.004413  0.8195    0.5858    
-#> month:year              5 0.04450 0.008901  1.6532    0.1457    
-#> Residuals             308 1.65832 0.005384                      
-#> ---
-#> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-```
-
-## Graphics Ideas
-
-### Jitter Plot By Year
-
-``` r
-ggplot(core_months_data, aes(year, tn,)) +
-  geom_jitter(aes(color = station_name)) + 
-  stat_summary(fun = mean, geom = 'line', lwd = 1) +
-  scale_y_log10() +
-  facet_wrap(~station_name, nrow = 5) +
-  scale_color_manual(values = cbep_colors()) +
-  theme_cbep(base_size = 12) +
-  theme(legend.position = 'None')
-```
-
-<img src="FOCB_TN_Analysis_files/figure-gfm/core_months_jitter_plot_by_yr-1.png" style="display: block; margin: auto;" />
-
-### Actual Dates
-
-``` r
-core_months_summary  <-   core_months_data %>%
-  select(station_name, year, tn) %>%
-  group_by(station_name, year) %>%
-  summarize(ann_mn_tn = mean(tn, na.rm = TRUE),
-            .groups = 'drop_last') %>%
-  filter(! is.na(ann_mn_tn)) %>%
-  mutate(dt = as.Date (paste0('06-15-', year), format = '%m-%d-%Y'))
-```
-
-``` r
-ggplot(core_months_data) +
-  geom_point(aes(dt, tn, color = station_name), alpha = 0.5) + 
-  geom_line(data = core_months_summary, 
-            mapping = aes(x = dt, y = ann_mn_tn), 
-            lwd = 1,
-            color = cbep_colors()[3]) +
-  scale_y_continuous(trans = 'log1p') +
-  facet_wrap(~station_name, nrow = 5) +
-  scale_color_viridis_d(option = 'viridis') +
-  theme_cbep(base_size = 12) +
-  theme(legend.position = 'None',
-        panel.spacing.x = unit(2.5, "lines")) +
-  xlab('') +
-  ylab('TN (mg/l)')
-```
-
-<img src="FOCB_TN_Analysis_files/figure-gfm/core_months_plot_by_date-1.png" style="display: block; margin: auto;" />
