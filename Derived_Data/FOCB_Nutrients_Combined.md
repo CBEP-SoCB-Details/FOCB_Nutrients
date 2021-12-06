@@ -438,7 +438,7 @@ all_data %>%
 ### Drop BOTH
 
 Here we replace suspect values with NA, to retain as much data as
-possible. But we stil lhave WAY fewer
+possible. But we still have WAY fewer
 
 ``` r
 p95 <- quantile(all_data$nh4, 0.95, na.rm = TRUE)
