@@ -121,9 +121,9 @@ sibling <- file.path(parent,sibfldnm)
 
 ## Load Data
 
-The data we use her has had a number of suspiciously high NH4 values
+The data we use here has had a number of suspiciously high NH4 values
 removed. See “FOCB\_Nutrients\_Combined.Rmd” for details and
-explanation/
+explanation.
 
 ``` r
 strict_data <- read_csv(file.path(sibling, 
@@ -212,7 +212,7 @@ ggplot(strict_data , aes(tn)) +
 
 ### Outliers Or Errors?
 
-The extreme TN values are perhaps suspect. the TN &gt;&gt; 3 has a huge
+The extreme TN values are perhaps suspect. The TN &gt;&gt; 3 has a huge
 effect on most models, but we have no information from FOCB that these
 values are in error.
 
@@ -425,7 +425,7 @@ Alternatively, data coverage looks a bit more consistent for 2018 and
 ## Extract Recent Results
 
 This is the simplest analysis, with no hierarchical modeling. We drop
-the extreme TN values, ass we do for most analyses coming up.
+the extreme TN values, as we do for most analyses coming up.
 
 ``` r
 recent_results <- recent_data %>%
@@ -1317,8 +1317,8 @@ pattern.
 
 But as we reduced the dimensionality of the smoothers, we got
 increasingly low predictive ability, and signs that the dimensionality
-of the smoother was too low. The effect is that it is unclear whether to
-retail the smoother or
+of the smoother was too low. The effect is that it is unclear whether or not to
+retail the smoother.
 
 Note that differences between years are substantial. Year 2016 was
 especially distinct. Weather in 2016 was unusual in many ways.
