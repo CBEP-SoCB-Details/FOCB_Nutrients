@@ -104,9 +104,9 @@ sibling <- file.path(parent,sibfldnm)
 
 ## Load Data
 
-The data we use her has had a number of suspiciously high NH4 values
+The data we use here has had a number of suspiciously high NH4 values
 removed. See “FOCB\_Nutrients\_Combined.Rmd” for details and
-explanation/
+explanation.
 
 ``` r
 strict_data <- read_csv(file.path(sibling, 
@@ -195,7 +195,7 @@ ggplot(strict_data , aes(tn)) +
 
 ### Outliers Or Errors?
 
-The extreme TN values are perhaps suspect. the TN &gt;&gt; 3 has a huge
+The extreme TN values are perhaps suspect. The TN &gt;&gt; 3 has a huge
 effect on most models, but we have no information from FOCB that these
 values are in error.
 
