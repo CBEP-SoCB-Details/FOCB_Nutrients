@@ -71,7 +71,7 @@ This notebook Looks at DIN numbers from Friends of Casco Bay samples.
 FOCB reports the TN samples and DIN samples were sent to different
 laboratories, and so direct comparison relies on consistent calibration,
 etc. across two labs. Accordingly, here we restrict our analysis to
-looking at DIN. a Sparate notebook looks at TN.
+looking at DIN. A separate notebook looks at TN.
 
 FOCB reports that some DIN samples over the years had unusually high
 ammonium values, and that those samples were noted by the laboratory
@@ -405,7 +405,7 @@ recent period, and sampling has focused on a smaller number of sites, a
 smaller number of months, or both.
 
 Only one site (KVL84, Knightville Landing, in South Portland) has fewer
-than five DIN values. It and was dropped, above, for lack of recent
+than five DIN values. It was dropped for lack of recent
 data.
 
 With the relatively low sample sizes and uneven sampling histories for
@@ -513,7 +513,7 @@ recent_data[c(149, 430, 501),]
 #> # ... with 4 more variables: din <dbl>, din_N <dbl>, nox_N <dbl>, nh4_N <dbl>
 ```
 
-The poorly fit samples are all from 2015 and 2016, warm season. It is
+The poorly fit samples are all from 2015 and 2016 during the warm season. It is
 possible the fit for those years is affected by the prevalence of winter
 samples, with the unbalanced sampling history biasing estimates for the
 entire year.
@@ -782,7 +782,7 @@ consistent across stations (but not months) in 2017 as well.
 
 We restrict further attention to just 2019, as that data will not be
 affected by the uneven sampling history to the same extent. Later we
-will look at just the warmer months of hte year, when seasonal variation
+will look at just the warmer months of the year, when seasonal variation
 is smaller.
 
 ``` r
@@ -1583,7 +1583,7 @@ ggplot(compare, aes(response.lm, response.rlm)) +
 # DIN Recent Condition Conclusions
 
 Restricting attention to 2019 makes sense. An alternative restriction to
-ore months left many stations with only data from 2019 anyway.
+more months left many stations with only data from 2019 anyway.
 
 There appears to be little advantage to robust models. Even so, there
 are several approaches possible:  
@@ -1737,7 +1737,7 @@ assumptions of normality, but the log plus one transform works well.
 
 We note no obvious linear pattern to the annual means, but there is a
 possible drop in annual averages in recent years. Unfortunately, that
-drop corresponds to years whn winter samples are no longer being
+drop corresponds to years when winter samples are no longer being
 collected.
 
 ## Real Dates and Times
