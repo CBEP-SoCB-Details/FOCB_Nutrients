@@ -537,11 +537,11 @@ emms_tn <- emmeans(trnd_lm, c('station_name', 'year'), cov.keep = 'year', type =
 ```
 
 ```{r}
-emms_df <- as.tibble(emms_tn) %>%
+emms_df <- as_tibble(emms_tn) %>%
   mutate(dt  = as.Date(paste0(year, '-06-10')))
 ```
 
-We remove the rpedictions for Stations without significant trends.
+We remove the predictions for Stations without significant trends.
 ```{r}
 emms_sig_df <-  emms_df %>%
   filter(station_name %in% c('Broad Sound', 'Clapboard Island',  'Fort Gorges'))

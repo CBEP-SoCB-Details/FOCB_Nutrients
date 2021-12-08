@@ -71,7 +71,7 @@ This notebook Looks at DIN numbers from Friends of Casco Bay samples.
 FOCB reports the TN samples and DIN samples were sent to different
 laboratories, and so direct comparison relies on consistent calibration,
 etc. across two labs. Accordingly, here we restrict our analysis to
-looking at DIN. a Sparate notebook looks at TN.
+looking at DIN. A separate notebook looks at TN.
 
 FOCB reports that some DIN samples over the years had unusually high
 ammonium values, and that those samples were noted by the laboratory
@@ -89,15 +89,15 @@ library(MASS) # for `rlm()` ans `lqs()`for robust regression
               # the tidyverse `select()` function, `MASS` should be loaded before
               # the tidyverse.
 
-#library(readr)
 library(readxl)
 library(tidyverse)
 #> Warning: package 'tidyverse' was built under R version 4.0.5
 #> -- Attaching packages --------------------------------------- tidyverse 1.3.1 --
-#> v ggplot2 3.3.3     v purrr   0.3.4
-#> v tibble  3.1.2     v dplyr   1.0.6
-#> v tidyr   1.1.3     v stringr 1.4.0
-#> v readr   1.4.0     v forcats 0.5.1
+#> v ggplot2 3.3.5     v purrr   0.3.4
+#> v tibble  3.1.6     v dplyr   1.0.7
+#> v tidyr   1.1.4     v stringr 1.4.0
+#> v readr   2.1.0     v forcats 0.5.1
+#> Warning: package 'ggplot2' was built under R version 4.0.5
 #> Warning: package 'tidyr' was built under R version 4.0.5
 #> Warning: package 'dplyr' was built under R version 4.0.5
 #> Warning: package 'forcats' was built under R version 4.0.5
@@ -107,15 +107,17 @@ library(tidyverse)
 #> x dplyr::select() masks MASS::select()
 
 library(mgcv)    # For generalized linear models
+#> Warning: package 'mgcv' was built under R version 4.0.5
 #> Loading required package: nlme
 #> 
 #> Attaching package: 'nlme'
 #> The following object is masked from 'package:dplyr':
 #> 
 #>     collapse
-#> This is mgcv 1.8-36. For overview type 'help("mgcv-package")'.
-#library(mblm)     # for median-based linear\models -- suitable for simple robust methods.
+#> This is mgcv 1.8-38. For overview type 'help("mgcv-package")'.
+
 library(emmeans)
+#> Warning: package 'emmeans' was built under R version 4.0.5
 library(moments)  # for skewness and kurtosis)
 
 library(sfsmisc)  # Provides alternative access to wald test for robust models
@@ -125,8 +127,6 @@ library(sfsmisc)  # Provides alternative access to wald test for robust models
 #> The following object is masked from 'package:dplyr':
 #> 
 #>     last
-
-#library(Ternary) # Base graphics ternary plots
 
 library(CBEPgraphics)
 load_cbep_fonts()
@@ -157,26 +157,15 @@ strict_data <- read_csv(file.path(sibling,
   mutate(month = factor(month, levels = month.abb),
          yearf = factor(year)) %>%
   mutate(dt = as.Date(dt))
-#> 
+#> Rows: 3324 Columns: 16
 #> -- Column specification --------------------------------------------------------
-#> cols(
-#>   station = col_character(),
-#>   dt = col_datetime(format = ""),
-#>   year = col_double(),
-#>   yearf = col_double(),
-#>   month = col_character(),
-#>   doy = col_double(),
-#>   tn_depth = col_double(),
-#>   din_depth = col_double(),
-#>   tn = col_double(),
-#>   nox = col_double(),
-#>   nh4 = col_double(),
-#>   din = col_double(),
-#>   din_N = col_double(),
-#>   nox_N = col_double(),
-#>   nh4_N = col_double(),
-#>   organic_N = col_double()
-#> )
+#> Delimiter: ","
+#> chr   (2): station, month
+#> dbl  (13): year, yearf, doy, tn_depth, din_depth, tn, nox, nh4, din, din_N, ...
+#> dttm  (1): dt
+#> 
+#> i Use `spec()` to retrieve the full column specification for this data.
+#> i Specify the column types or set `show_col_types = FALSE` to quiet this message.
 ```
 
 # Station Names
@@ -405,8 +394,7 @@ recent period, and sampling has focused on a smaller number of sites, a
 smaller number of months, or both.
 
 Only one site (KVL84, Knightville Landing, in South Portland) has fewer
-than five DIN values. It and was dropped, above, for lack of recent
-data.
+than five DIN values. It was dropped, above, for lack of recent data.
 
 With the relatively low sample sizes and uneven sampling histories for
 most sites, complex models may perform poorly. Interactions with year,
@@ -513,10 +501,10 @@ recent_data[c(149, 430, 501),]
 #> # ... with 4 more variables: din <dbl>, din_N <dbl>, nox_N <dbl>, nh4_N <dbl>
 ```
 
-The poorly fit samples are all from 2015 and 2016, warm season. It is
-possible the fit for those years is affected by the prevalence of winter
-samples, with the unbalanced sampling history biasing estimates for the
-entire year.
+The poorly fit samples are all from 2015 and 2016 during the warm
+season. It is possible the fit for those years is affected by the
+prevalence of winter samples, with the unbalanced sampling history
+biasing estimates for the entire year.
 
 ### Marginal Means
 
@@ -533,7 +521,7 @@ in some places where available data are biased.
 ``` r
 plot(din_emms_lm) + coord_flip() + 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.25)) +
-  geom_point(data = recent_results, aes(y = as.numeric(station), x = din_N_md),
+  geom_point(data = recent_results, aes(y = station, x = din_N_md),
              color = 'red')
 ```
 
@@ -665,7 +653,7 @@ gam.check(din_gam)
     #> indicate that k is too low, especially if edf is close to k'.
     #> 
     #>            k'  edf k-index p-value  
-    #> s(doy)   3.00 2.79    0.91   0.045 *
+    #> s(doy)   3.00 2.79    0.91   0.075 .
     #> s(yearf) 4.00 2.78      NA      NA  
     #> ---
     #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
@@ -782,7 +770,7 @@ consistent across stations (but not months) in 2017 as well.
 
 We restrict further attention to just 2019, as that data will not be
 affected by the uneven sampling history to the same extent. Later we
-will look at just the warmer months of hte year, when seasonal variation
+will look at just the warmer months of the year, when seasonal variation
 is smaller.
 
 ``` r
@@ -903,7 +891,8 @@ plot(din_emms_lm) + coord_flip() +
 ```
 
 <img src="FOCB_DIN_Analysis_files/figure-gfm/unnamed-chunk-4-1.png" style="display: block; margin: auto;" />
-\#\#\#\# Marginal Means
+
+#### Marginal Means
 
 ``` r
 din_emms_lm_2019 <- emmeans(din_lm_2019, 'station', type = 'response')
@@ -949,6 +938,7 @@ plot(din_emms_lm_2019_red) + coord_flip() +
 ```
 
 <img src="FOCB_DIN_Analysis_files/figure-gfm/red_2019_marginals-1.png" style="display: block; margin: auto;" />
+
 Qualitatively indistinguishable results….
 
 ### Robust Linear Model
@@ -1065,8 +1055,8 @@ plot(din_emms_gam_2019) + coord_flip() +
 din_emms_gam_2019 <- as_tibble(din_emms_gam_2019) 
 ```
 
-Again, qualitatively similar results, but this models appears to
-slightly overestimate observed means fairly consistently.
+Again, qualitatively similar results, but this model appears to slightly
+overestimate observed means fairly consistently.
 
 ### Compare Model Results – Does Model Selection Matter?
 
@@ -1444,7 +1434,7 @@ gam.check(din_gam)
     #> indicate that k is too low, especially if edf is close to k'.
     #> 
     #>            k'  edf k-index p-value  
-    #> s(doy)   3.00 2.79    0.91   0.055 .
+    #> s(doy)   3.00 2.79    0.91   0.025 *
     #> s(yearf) 4.00 2.78      NA      NA  
     #> ---
     #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
@@ -1583,7 +1573,7 @@ ggplot(compare, aes(response.lm, response.rlm)) +
 # DIN Recent Condition Conclusions
 
 Restricting attention to 2019 makes sense. An alternative restriction to
-ore months left many stations with only data from 2019 anyway.
+selected months left many stations with only data from 2019 anyway.
 
 There appears to be little advantage to robust models. Even so, there
 are several approaches possible:  
@@ -1737,7 +1727,7 @@ assumptions of normality, but the log plus one transform works well.
 
 We note no obvious linear pattern to the annual means, but there is a
 possible drop in annual averages in recent years. Unfortunately, that
-drop corresponds to years whn winter samples are no longer being
+drop corresponds to years when winter samples are no longer being
 collected.
 
 ## Real Dates and Times

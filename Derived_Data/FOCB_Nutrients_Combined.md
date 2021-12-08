@@ -60,10 +60,11 @@ library(readxl)
 library(tidyverse)
 #> Warning: package 'tidyverse' was built under R version 4.0.5
 #> -- Attaching packages --------------------------------------- tidyverse 1.3.1 --
-#> v ggplot2 3.3.3     v dplyr   1.0.6
-#> v tibble  3.1.2     v stringr 1.4.0
-#> v tidyr   1.1.3     v forcats 0.5.1
+#> v ggplot2 3.3.5     v dplyr   1.0.7
+#> v tibble  3.1.6     v stringr 1.4.0
+#> v tidyr   1.1.4     v forcats 0.5.1
 #> v purrr   0.3.4
+#> Warning: package 'ggplot2' was built under R version 4.0.5
 #> Warning: package 'tidyr' was built under R version 4.0.5
 #> Warning: package 'dplyr' was built under R version 4.0.5
 #> Warning: package 'forcats' was built under R version 4.0.5
@@ -438,7 +439,8 @@ all_data %>%
 ### Drop BOTH
 
 Here we replace suspect values with NA, to retain as much data as
-possible. But we stil lhave WAY fewer
+possible. But we have *way* fewer complete data rows than using hte
+otehr trimming strategies.
 
 ``` r
 p95 <- quantile(all_data$nh4, 0.95, na.rm = TRUE)

@@ -24,7 +24,8 @@ This notebook Looks at DIN numbers from Friends of Casco Bay samples.
 
 FOCB reports the TN samples and DIN samples were sent to different laboratories,
 and so direct comparison relies on consistent calibration, etc. across two labs.
-Accordingly, here we restrict our analysis to looking at DIN. a Sparate notebook looks at TN. 
+Accordingly, here we restrict our analysis to looking at DIN. A separate 
+notebook looks at TN. 
 
 FOCB reports that some DIN samples over the years had unusually high
 ammonium values, and that those samples were noted by the laboratory conducting
@@ -40,18 +41,15 @@ library(MASS) # for `rlm()` ans `lqs()`for robust regression
               # the tidyverse `select()` function, `MASS` should be loaded before
               # the tidyverse.
 
-#library(readr)
 library(readxl)
 library(tidyverse)
 
 library(mgcv)    # For generalized linear models
-#library(mblm)     # for median-based linear\models -- suitable for simple robust methods.
+
 library(emmeans)
 library(moments)  # for skewness and kurtosis)
 
 library(sfsmisc)  # Provides alternative access to wald test for robust models
-
-#library(Ternary) # Base graphics ternary plots
 
 library(CBEPgraphics)
 load_cbep_fonts()
@@ -218,7 +216,7 @@ recent period, and sampling has focused on a smaller number of sites,
 a smaller number of months, or both.
 
 Only one site (KVL84, Knightville Landing, in South Portland) has fewer 
-than five DIN values.  It and was dropped, above, for lack of recent data.
+than five DIN values.  It was dropped, above, for lack of recent data.
 
 With the relatively low sample sizes and uneven sampling histories for most
 sites, complex models may perform poorly.  Interactions with year, time of year,
@@ -280,16 +278,16 @@ the skew in the original data.
 ```{r look_at_outliers}
 recent_data[c(149, 430, 501),]
 ```
-The poorly fit samples are all from 2015 and 2016, warm season.  It is possible 
-the fit for those years is affected by the prevalence of winter samples, with
-the unbalanced sampling history biasing estimates for the entire year.
+The poorly fit samples are all from 2015 and 2016 during the warm season.  It is
+possible the fit for those years is affected by the prevalence of winter
+samples, with the unbalanced sampling history biasing estimates for the entire
+year.
 
 ### Marginal Means
 ```{r extract_lm_marginal_means}
 din_emms_lm <- emmeans(din_lm, 'station', type = 'response')
 din_emms_lm_jul <- emmeans(din_lm, 'station', type = 'response', 
                        at = list(month = 'Jul'))
-
 ```
 
 Unfortunately, the relationship to observed means is only so-so.  Again, this
@@ -443,8 +441,7 @@ consistent across stations (but not months) in 2017 as well.
 
 We restrict further attention to just 2019, as that data will not be affected by 
 the uneven sampling history to the same extent.  Later we will look at just the 
-warmer months of hte year, when seasonal variation is smaller.
-
+warmer months of the year, when seasonal variation is smaller.
 
 ```{r}
 xtabs(~ station + month, data = recent_data, subset = recent_data$year == 2019)
@@ -474,7 +471,6 @@ ggplot(yr_2019_data, aes(din_N, station_name)) +
   geom_point(aes(color = month)) +
   scale_x_log10()
 ```
-
 
 ### Calculate Descriptive Statistics
 ```{r descriptives_2019}
@@ -511,6 +507,7 @@ plot(din_emms_lm) + coord_flip() +
   geom_point(data = recent_results, aes(y = as.numeric(station), x = din_N_md),
              color = 'red')
 ```
+
 #### Marginal Means
 ```{r marginals_2019}
 din_emms_lm_2019 <- emmeans(din_lm_2019, 'station', type = 'response')
@@ -540,8 +537,8 @@ plot(din_emms_lm_2019_red) + coord_flip() +
   geom_point(data = results_2019, aes(y = station, x = din_N_md),
              color = 'red')
 ```
-Qualitatively indistinguishable results....
 
+Qualitatively indistinguishable results....
 
 ###  Robust Linear Model
 The `rlm()` function from `MASS` implements robust model fitting using M
@@ -608,7 +605,7 @@ plot(din_emms_gam_2019) + coord_flip() +
              color = 'red')
 din_emms_gam_2019 <- as_tibble(din_emms_gam_2019) 
 ```
-Again, qualitatively similar results, but this models appears to slightly 
+Again, qualitatively similar results, but this model appears to slightly 
 overestimate observed means fairly consistently.
 
 ### Compare Model Results -- Does Model Selection Matter?
@@ -712,7 +709,6 @@ core_months_data <- recent_data %>%
   filter(! is.na(din)) %>%
   select(station, station_name, dt, year, yearf, month, doy, din_N)
 ```
-
 
 ```{r}
 xtabs(~ station + month, data = core_months_data)
@@ -960,9 +956,10 @@ ggplot(compare, aes(response.lm, response.rlm)) +
 
 # DIN  Recent Condition Conclusions
 Restricting attention to 2019 makes sense. An alternative restriction to
-ore months left many stations with only data from 2019 anyway.
+selected months left many stations with only data from 2019 anyway.
 
-There appears to be little advantage to robust models.  Even so, there are several approaches possible:  
+There appears to be little advantage to robust models.  Even so, there are 
+several approaches possible:  
 1.  Just use observed means / medians.  
 2.  Use fitted means from the simplest linear models.  This effectively fits
     geometric means, not arithmetic means, and pools error estimates.   
@@ -1095,8 +1092,7 @@ normality, but the log plus one transform works well.
 
 We note no obvious linear pattern to the annual means, but there is a possible 
 drop in annual averages in recent years. Unfortunately, that drop corresponds
-to years whn winter samples are no longer being collected.
-
+to years when winter samples are no longer being collected.
 
 ## Real Dates and Times
 First, we create a summary dataframe
@@ -1156,7 +1152,6 @@ core_months_summary  <-   core_months_data %>%
   filter(! is.na(ann_mn_din_N)) %>%
   mutate(dt = as.Date (paste0('06-15-', year), format = '%m-%d-%Y'))
 ```
-
 
 ```{r core_months_jitter_plot_by_date, fig.height = 7, fig.width = 5}
 ggplot(core_months_data) +

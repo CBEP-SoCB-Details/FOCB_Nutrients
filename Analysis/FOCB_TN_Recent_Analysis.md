@@ -68,10 +68,11 @@ library(readxl)
 library(tidyverse)
 #> Warning: package 'tidyverse' was built under R version 4.0.5
 #> -- Attaching packages --------------------------------------- tidyverse 1.3.1 --
-#> v ggplot2 3.3.3     v purrr   0.3.4
-#> v tibble  3.1.2     v dplyr   1.0.6
-#> v tidyr   1.1.3     v stringr 1.4.0
-#> v readr   1.4.0     v forcats 0.5.1
+#> v ggplot2 3.3.5     v purrr   0.3.4
+#> v tibble  3.1.6     v dplyr   1.0.7
+#> v tidyr   1.1.4     v stringr 1.4.0
+#> v readr   2.1.0     v forcats 0.5.1
+#> Warning: package 'ggplot2' was built under R version 4.0.5
 #> Warning: package 'tidyr' was built under R version 4.0.5
 #> Warning: package 'dplyr' was built under R version 4.0.5
 #> Warning: package 'forcats' was built under R version 4.0.5
@@ -81,15 +82,17 @@ library(tidyverse)
 #> x dplyr::select() masks MASS::select()
 
 library(mgcv)    # For generalized linear models
+#> Warning: package 'mgcv' was built under R version 4.0.5
 #> Loading required package: nlme
 #> 
 #> Attaching package: 'nlme'
 #> The following object is masked from 'package:dplyr':
 #> 
 #>     collapse
-#> This is mgcv 1.8-36. For overview type 'help("mgcv-package")'.
+#> This is mgcv 1.8-38. For overview type 'help("mgcv-package")'.
 #library(mblm)     # for median-based linear\models -- suitable for simple robust methods.
 library(emmeans)
+#> Warning: package 'emmeans' was built under R version 4.0.5
 library(moments)  # for skewness and kurtosis)
 
 library(sfsmisc)  # Provides alternative access to Wald test for robust models
@@ -121,9 +124,9 @@ sibling <- file.path(parent,sibfldnm)
 
 ## Load Data
 
-The data we use her has had a number of suspiciously high NH4 values
+The data we use here has had a number of suspiciously high NH4 values
 removed. See “FOCB\_Nutrients\_Combined.Rmd” for details and
-explanation/
+explanation.
 
 ``` r
 strict_data <- read_csv(file.path(sibling, 
@@ -131,26 +134,15 @@ strict_data <- read_csv(file.path(sibling,
   mutate(month = factor(month, levels = month.abb),
          yearf = factor(year)) %>%
   mutate(dt = as.Date(dt))
-#> 
+#> Rows: 3324 Columns: 16
 #> -- Column specification --------------------------------------------------------
-#> cols(
-#>   station = col_character(),
-#>   dt = col_datetime(format = ""),
-#>   year = col_double(),
-#>   yearf = col_double(),
-#>   month = col_character(),
-#>   doy = col_double(),
-#>   tn_depth = col_double(),
-#>   din_depth = col_double(),
-#>   tn = col_double(),
-#>   nox = col_double(),
-#>   nh4 = col_double(),
-#>   din = col_double(),
-#>   din_N = col_double(),
-#>   nox_N = col_double(),
-#>   nh4_N = col_double(),
-#>   organic_N = col_double()
-#> )
+#> Delimiter: ","
+#> chr   (2): station, month
+#> dbl  (13): year, yearf, doy, tn_depth, din_depth, tn, nox, nh4, din, din_N, ...
+#> dttm  (1): dt
+#> 
+#> i Use `spec()` to retrieve the full column specification for this data.
+#> i Specify the column types or set `show_col_types = FALSE` to quiet this message.
 ```
 
 # Station Names
@@ -212,7 +204,7 @@ ggplot(strict_data , aes(tn)) +
 
 ### Outliers Or Errors?
 
-The extreme TN values are perhaps suspect. the TN &gt;&gt; 3 has a huge
+The extreme TN values are perhaps suspect. The TN &gt;&gt; 3 has a huge
 effect on most models, but we have no information from FOCB that these
 values are in error.
 
@@ -425,7 +417,7 @@ Alternatively, data coverage looks a bit more consistent for 2018 and
 ## Extract Recent Results
 
 This is the simplest analysis, with no hierarchical modeling. We drop
-the extreme TN values, ass we do for most analyses coming up.
+the extreme TN values, as we do for most analyses coming up.
 
 ``` r
 recent_results <- recent_data %>%
@@ -1317,8 +1309,8 @@ pattern.
 
 But as we reduced the dimensionality of the smoothers, we got
 increasingly low predictive ability, and signs that the dimensionality
-of the smoother was too low. The effect is that it is unclear whether to
-retail the smoother or
+of the smoother was too low. The effect is that it is unclear whether or
+not to retain the smoother.
 
 Note that differences between years are substantial. Year 2016 was
 especially distinct. Weather in 2016 was unusual in many ways.

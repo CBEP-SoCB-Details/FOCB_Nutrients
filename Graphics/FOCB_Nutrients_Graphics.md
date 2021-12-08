@@ -91,10 +91,11 @@ library(readxl)
 library(tidyverse)
 #> Warning: package 'tidyverse' was built under R version 4.0.5
 #> -- Attaching packages --------------------------------------- tidyverse 1.3.1 --
-#> v ggplot2 3.3.3     v purrr   0.3.4
-#> v tibble  3.1.2     v dplyr   1.0.6
-#> v tidyr   1.1.3     v stringr 1.4.0
-#> v readr   1.4.0     v forcats 0.5.1
+#> v ggplot2 3.3.5     v purrr   0.3.4
+#> v tibble  3.1.6     v dplyr   1.0.7
+#> v tidyr   1.1.4     v stringr 1.4.0
+#> v readr   2.1.0     v forcats 0.5.1
+#> Warning: package 'ggplot2' was built under R version 4.0.5
 #> Warning: package 'tidyr' was built under R version 4.0.5
 #> Warning: package 'dplyr' was built under R version 4.0.5
 #> Warning: package 'forcats' was built under R version 4.0.5
@@ -103,14 +104,16 @@ library(tidyverse)
 #> x dplyr::lag()    masks stats::lag()
 
 library(mgcv)    # For generalized linear models
+#> Warning: package 'mgcv' was built under R version 4.0.5
 #> Loading required package: nlme
 #> 
 #> Attaching package: 'nlme'
 #> The following object is masked from 'package:dplyr':
 #> 
 #>     collapse
-#> This is mgcv 1.8-36. For overview type 'help("mgcv-package")'.
+#> This is mgcv 1.8-38. For overview type 'help("mgcv-package")'.
 library(emmeans)
+#> Warning: package 'emmeans' was built under R version 4.0.5
 
 library(CBEPgraphics)
 load_cbep_fonts()
@@ -141,26 +144,15 @@ strict_data <- read_csv(file.path(sibling,
   mutate(dt = as.Date(dt)) %>%
   mutate(month = factor(month, levels = month.abb),
          yearf = factor(year))
-#> 
+#> Rows: 3324 Columns: 16
 #> -- Column specification --------------------------------------------------------
-#> cols(
-#>   station = col_character(),
-#>   dt = col_datetime(format = ""),
-#>   year = col_double(),
-#>   yearf = col_double(),
-#>   month = col_character(),
-#>   doy = col_double(),
-#>   tn_depth = col_double(),
-#>   din_depth = col_double(),
-#>   tn = col_double(),
-#>   nox = col_double(),
-#>   nh4 = col_double(),
-#>   din = col_double(),
-#>   din_N = col_double(),
-#>   nox_N = col_double(),
-#>   nh4_N = col_double(),
-#>   organic_N = col_double()
-#> )
+#> Delimiter: ","
+#> chr   (2): station, month
+#> dbl  (13): year, yearf, doy, tn_depth, din_depth, tn, nox, nh4, din, din_N, ...
+#> dttm  (1): dt
+#> 
+#> i Use `spec()` to retrieve the full column specification for this data.
+#> i Specify the column types or set `show_col_types = FALSE` to quiet this message.
 ```
 
 ## Station Names
@@ -715,14 +707,11 @@ emms_tn <- emmeans(trnd_lm, c('station_name', 'year'), cov.keep = 'year', type =
 ```
 
 ``` r
-emms_df <- as.tibble(emms_tn) %>%
+emms_df <- as_tibble(emms_tn) %>%
   mutate(dt  = as.Date(paste0(year, '-06-10')))
-#> Warning: `as.tibble()` was deprecated in tibble 2.0.0.
-#> Please use `as_tibble()` instead.
-#> The signature and semantics have changed, see `?as_tibble`.
 ```
 
-We remove the rpedictions for Stations without significant trends.
+We remove the predictions for Stations without significant trends.
 
 ``` r
 emms_sig_df <-  emms_df %>%

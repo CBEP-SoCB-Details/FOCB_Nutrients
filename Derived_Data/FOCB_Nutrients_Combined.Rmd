@@ -339,7 +339,8 @@ all_data %>%
 
 ### Drop BOTH
 Here we replace suspect values with NA, to retain as much data as possible.
-But we stil lhave WAY fewer 
+But we have *way* fewer complete data rows than using hte otehr trimming 
+strategies.
 ```{r nh4_nox_plot_trim_both}
 p95 <- quantile(all_data$nh4, 0.95, na.rm = TRUE)
 strict_data <- all_data %>%
